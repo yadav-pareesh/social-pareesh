@@ -1,75 +1,68 @@
-# React + TypeScript + Vite
+# ChatApp - Social Media Chat Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-Active-success)
 
-Currently, two official plugins are available:
+A modern, real-time social media chat application built with React, Node.js, and PostgreSQL. This project demonstrates full-stack development with a focus on scalability, performance, and user experience.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 Features
 
-## React Compiler
+### Messaging
+- Real-time one-to-one chat with Socket.io
+- Edit and delete messages
+- Message replies and threading
+- Read receipts
+- Typing indicators
+- Emoji support
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### User Management
+- User authentication with JWT
+- Profile management and customization
+- User search and discovery
+- Online/offline/away status tracking
+- Last seen tracking
 
-## Expanding the ESLint configuration
+### Social Features
+- Friend request system
+- Accept/reject friend requests
+- Friend list management
+- Block users
+- User profiles with bio
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### UI/UX
+- Dark mode and light mode support
+- Responsive design (mobile, tablet, desktop)
+- Clean and intuitive interface
+- Real-time status indicators
+- Breadcrumb navigation
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 🛠 Tech Stack
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Frontend
+- **React 19** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **TanStack Query** - Server state management
+- **Zustand** - Client state management
+- **Socket.io Client** - Real-time communication
+- **React Router v7** - Routing
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - Component library
+- **React Hook Form** - Form handling
+- **Zod** - Schema validation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Backend
+- **Node.js** - Runtime
+- **Express.js** - Web framework
+- **TypeScript** - Type safety
+- **PostgreSQL** - Database
+- **Prisma** - ORM
+- **Socket.io** - Real-time server
+- **JWT** - Authentication
+- **bcryptjs** - Password hashing
 
-```
+### DevOps
+- **Docker** - Containerization
+- **Docker Compose** - Multi-container orchestration
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
