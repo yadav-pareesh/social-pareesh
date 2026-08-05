@@ -3,10 +3,11 @@ import { type ReactNode, useState, useRef, useEffect } from 'react';
 
 interface DropdownMenuProps {
   trigger?: ReactNode;
+  align?: 'right' | 'left';
   children: ReactNode;
 }
 
-export const DropdownMenu = ({ trigger, children }: DropdownMenuProps) => {
+export const DropdownMenu = ({ trigger, children, align }: DropdownMenuProps) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -35,7 +36,7 @@ export const DropdownMenu = ({ trigger, children }: DropdownMenuProps) => {
         <div
           role="menu"
           tabIndex={0}
-          className="absolute right-0 mt-2 w-48 bg-popover border rounded-lg shadow-lg z-1200"
+          className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} mt-2 w-48 bg-popover border rounded-lg shadow-lg z-1200`}
           onClick={() => setOpen(false)}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {

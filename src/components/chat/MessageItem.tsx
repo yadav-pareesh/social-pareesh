@@ -112,7 +112,7 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
           }`}
         >
           <div className="absolute -top-1 right-2">
-            <DropdownMenu trigger={<MoreHorizontal className="h-4 w-4" />}>
+            <DropdownMenu align={isOwn?'right':'left'} trigger={<MoreHorizontal className="h-4 w-4" />}>
               <DropdownMenuContent>
                 {isOwn && (
                   <>
