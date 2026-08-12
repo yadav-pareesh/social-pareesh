@@ -15,6 +15,9 @@ import {
 import { ConfirmDeleteModal } from '../modals/ConfirmDeleteModal';
 import type { User } from '@/types';
 import { toast } from '../ui/toast';
+import { ChangePasswordCard } from './ChangePasswordCard';
+import { Dialog, DialogContent } from '../common/Dialog';
+import { useUIStore } from '@/stores/uiStore';
 
 interface AuthenticatedUserProfileProps {
   onNavigate?: (path: string) => void;
@@ -26,6 +29,7 @@ export const AuthenticatedUserProfile = ({
   const { user, logout } = useAuthStore();
   const logoutMutation = useLogout();
   const queryClient = useQueryClient();
+  const { showChangePassword, setShowChangePassword} = useUIStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -244,6 +248,13 @@ export const AuthenticatedUserProfile = ({
               onPrivacy={handlePrivacy}
               onPreferences={handlePreferences}
             />
+
+            {/* Change Password Dialog */}
+            {showChangePassword && <Dialog open={true} onOpenChange={setShowChangePassword}>
+              <DialogContent className="max-w-md">
+                <ChangePasswordCard />
+              </DialogContent>
+            </Dialog>}
 
             {/* Statistics */}
             <Statistics

@@ -1,3 +1,4 @@
+import { useUIStore } from '@/stores/uiStore';
 import { Button } from '../common/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../common/Card';
 import { Bell, Lock, Shield, Settings } from 'lucide-react';
@@ -15,6 +16,7 @@ export const QuickActions = ({
   onPrivacy,
   onPreferences,
 }: QuickActionsProps) => {
+  const { showChangePassword, setShowChangePassword } = useUIStore();
   return (
     <Card>
       <CardHeader>
@@ -32,7 +34,7 @@ export const QuickActions = ({
         <Button
           variant="outline"
           className="w-full justify-start"
-          onClick={onPassword}
+          onClick={() => setShowChangePassword(true)}
         >
           <Lock className="h-4 w-4 mr-2" />
           Change Password

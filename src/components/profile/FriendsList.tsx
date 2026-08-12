@@ -6,7 +6,6 @@ import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../common/Card';
 import { MessageSquare, Trash2 } from 'lucide-react';
-import { mockUsers } from '@/types/mockData';
 
 export const FriendsList = () => {
   // const { data: friendsData, isLoading } = useQuery({
@@ -14,7 +13,7 @@ export const FriendsList = () => {
   //   queryFn: () => friendsAPI.getFriends(),
   // });
 
-  const friends = mockUsers || [];
+  // const friends = mockUsers || [];
 
   // if (isLoading) {
   //   return <div>Loading friends...</div>;
@@ -33,12 +32,13 @@ export const FriendsList = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Friends ({friends?.length})</CardTitle>
+        {/* <CardTitle>Friends ({friends?.length})</CardTitle> */}
+        <CardTitle>Friends ({[]?.length})</CardTitle>
         <CardDescription>Your friend list</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {friends.map((friend: User) => (
+          {[].map((friend: User) => (
             <div
               key={friend.id}
               className="flex items-center justify-between p-3 bg-muted rounded-lg"
