@@ -111,7 +111,7 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
               : 'bg-muted text-foreground'
           }`}
         >
-          <div className="absolute -top-1 right-2">
+          {!isEditing && <div className="absolute -top-1 right-2">
             <DropdownMenu align={isOwn?'right':'left'} trigger={<MoreHorizontal className="h-4 w-4" />}>
               <DropdownMenuContent>
                 {isOwn && (
@@ -143,10 +143,10 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
+          </div>}
 
           {isEditing ? (
-            <div className="space-y-2 pr-6">
+            <div className="space-y-2">
               <textarea
                 value={draftContent}
                 onChange={(event) => setDraftContent(event.target.value)}
@@ -167,7 +167,7 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
                     setIsEditing(false);
                     setDraftContent(message.content);
                   }}
-                  className="rounded-md px-2 py-1 text-xs text-muted-foreground"
+                  className="rounded-md px-2 py-1 text-xs font-medium"
                 >
                   Cancel
                 </button>

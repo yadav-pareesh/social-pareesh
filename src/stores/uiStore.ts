@@ -6,12 +6,14 @@ interface UIState {
   selectedUser: string | null;
   showSearchModal: boolean;
   showUserCard: boolean;
+  showChangePassword: boolean;
 
   setDarkMode: (dark: boolean) => void;
   toggleSidebar: () => void;
   setShowUserCard: (show: boolean) => void;
   setSelectedUser: (userId: string | null) => void;
   setShowSearchModal: (show: boolean) => void;
+  setShowChangePassword: (show: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -20,6 +22,7 @@ export const useUIStore = create<UIState>((set) => ({
   selectedUser: null,
   showSearchModal: false,
   showUserCard: false,
+  showChangePassword: false,
   setDarkMode: (dark) => {
     localStorage.setItem('theme', dark ? 'dark' : 'light');
     if (dark) {
@@ -37,4 +40,6 @@ export const useUIStore = create<UIState>((set) => ({
   setShowSearchModal: (show) => set({ showSearchModal: show }),
 
   setShowUserCard: (show) => set({ showUserCard: show }),
+
+  setShowChangePassword: (show) => set({ showChangePassword: show }),
 }));

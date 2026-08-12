@@ -68,7 +68,7 @@ export const DropdownMenuItem = ({ children, onClick }: DropdownMenuItemProps) =
   return (
     <button
       onClick={onClick}
-      className="w-full px-4 py-2 text-left hover:bg-accent border-b last:border-b-0 text-sm"
+      className="w-full px-4 py-2 text-left hover:bg-accent border-b last:border-b-0 text-sm rounded-lg"
     >
       {children}
     </button>
