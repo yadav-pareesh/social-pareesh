@@ -5,18 +5,16 @@ import { Bell, Lock, Shield, Settings } from 'lucide-react';
 
 interface QuickActionsProps {
   onNotifications?: () => void;
-  onPassword?: () => void;
   onPrivacy?: () => void;
   onPreferences?: () => void;
 }
 
 export const QuickActions = ({
   onNotifications,
-  onPassword,
   onPrivacy,
   onPreferences,
 }: QuickActionsProps) => {
-  const { showChangePassword, setShowChangePassword } = useUIStore();
+  const { setShowChangePassword } = useUIStore();
   return (
     <Card>
       <CardHeader>

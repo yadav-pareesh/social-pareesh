@@ -1,5 +1,5 @@
 import { apiClient } from '../../lib/api-client';
-import type { Message, ApiResponse, PaginatedResponse } from '../../types';
+import type { Message, ApiResponse, PaginatedResponse, Conversation } from '../../types';
 
 export const messagesAPI = {
   getConversationMessages: async (
@@ -35,11 +35,15 @@ export const messagesAPI = {
     return apiClient.post(`/messages/${messageId}/read`);
   },
 
-  getConversations: async (): Promise<ApiResponse<any[]>> => {
+  getConversations: async (): Promise<ApiResponse<Conversation[]>> => {
     return apiClient.get('/conversations');
   },
 
-  startConversation: async (userId: string): Promise<ApiResponse<any>> => {
+  startConversation: async (userId: string): Promise<ApiResponse<Conversation>> => {
     return apiClient.post('/conversations', { userId });
   },
+
+  deleteConversation: async (conversationId: string): Promise<ApiResponse<void>> => {
+    return apiClient.delete(`/conversations/${conversationId}`);
+  }
 };

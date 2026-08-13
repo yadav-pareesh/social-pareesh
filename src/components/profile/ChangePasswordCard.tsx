@@ -82,7 +82,6 @@ export const ChangePasswordCard = () => {
   // Change password mutation
   const changePasswordMutation = useMutation({
     mutationFn: async (data: any) => {
-      // TODO: Replace with actual API call
       const response = await usersAPI.changePassword(
         user?.id as string,
         data.currentPassword,

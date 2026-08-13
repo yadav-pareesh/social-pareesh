@@ -18,7 +18,7 @@ interface UIState {
 
 export const useUIStore = create<UIState>((set) => ({
   isDarkMode: localStorage.getItem('theme') === 'dark',
-  sidebarOpen: true,
+  sidebarOpen: false,
   selectedUser: null,
   showSearchModal: false,
   showUserCard: false,

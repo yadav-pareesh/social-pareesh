@@ -165,16 +165,6 @@ export const AuthenticatedUserProfile = ({
         })
   };
 
-  const handlePassword = () => {
-    // TODO: implement password change logics here
-    console.log('Navigate to password change');
-    toast.add({
-            title: "Success",
-            description: "Reset password feature will come soon",
-            type: "info"
-        })
-  };
-
   const handlePrivacy = () => {
     // TODO: implement privacy logic here
     console.log('Navigate to privacy settings');
@@ -244,7 +234,6 @@ export const AuthenticatedUserProfile = ({
             {/* Quick Actions */}
             <QuickActions
               onNotifications={handleNotifications}
-              onPassword={handlePassword}
               onPrivacy={handlePrivacy}
               onPreferences={handlePreferences}
             />

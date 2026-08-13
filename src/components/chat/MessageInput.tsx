@@ -45,6 +45,7 @@ export const MessageInput = ({ onSend, conversationId }: MessageInputProps) => {
     <form onSubmit={handleSubmit(onSubmit)} className="flex gap-2 p-4 border-t">
       <Input
         {...register('content')}
+        autoFocus={true}
         placeholder="Type a message..."
         className="flex-1"
       />
