@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '../common/DropdownMenu';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../common/Dialog';
 import { useDeleteMessage, useEditMessage } from '../../hooks/useChat';
+import { useMessageNotification } from '@/hooks/useMessageNotification';
 
 interface MessageItemProps {
   message: Message;
@@ -22,6 +23,11 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
   const [infoOpen, setInfoOpen] = useState(false);
   const editMessageMutation = useEditMessage();
   const deleteMessageMutation = useDeleteMessage();
+
+  useMessageNotification((message) => {
+
+    console.log('New message:', message);
+  });
 
   // Auto-mark message as read when it becomes visible
   useEffect(() => {

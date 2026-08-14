@@ -18,6 +18,7 @@ import { toast } from '../ui/toast';
 import { ChangePasswordCard } from './ChangePasswordCard';
 import { Dialog, DialogContent } from '../common/Dialog';
 import { useUIStore } from '@/stores/uiStore';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthenticatedUserProfileProps {
   onNavigate?: (path: string) => void;
@@ -26,6 +27,7 @@ interface AuthenticatedUserProfileProps {
 export const AuthenticatedUserProfile = ({
   onNavigate,
 }: AuthenticatedUserProfileProps) => {
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const logoutMutation = useLogout();
   const queryClient = useQueryClient();
@@ -156,13 +158,7 @@ export const AuthenticatedUserProfile = ({
   };
 
   const handleNotifications = () => {
-    // TODO: implement notification logics here
-    console.log('Navigate to notifications settings');
-    toast.add({
-            title: "Success",
-            description: "Notification feature will come soon",
-            type: "info"
-        })
+    navigate('/notification');
   };
 
   const handlePrivacy = () => {

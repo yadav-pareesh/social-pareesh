@@ -8,12 +8,20 @@ import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
 import { NotFound } from './pages/NotFound';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { NotificationSettings } from './components/common/NotificationSettings';
+import { notificationService } from './services/notificationService';
 
 const queryClient = new QueryClient();
 
 export const App = () => {
   const { hydrate } = useAuthStore();
   const { isDarkMode } = useUIStore();
+
+  useEffect(() => {
+    return () => {
+      notificationService.dispose();
+    };
+  }, []);
 
   useEffect(() => {
     hydrate();
@@ -48,6 +56,15 @@ export const App = () => {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/notification"
+            element={
+              <ProtectedRoute>
+                <NotificationSettings />
               </ProtectedRoute>
             }
           />

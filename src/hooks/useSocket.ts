@@ -44,7 +44,11 @@ export const useSocket = () => {
     // Message events
     socket.on('message:new', (message: Message) => {
       addMessage(message.conversationId, message);
-      
+      window.dispatchEvent(
+        new CustomEvent('newMessage', {
+          detail: message,
+        })
+      );
       // Update messages cache
       queryClient.setQueryData(['messages', message.conversationId], (oldData: Message[] | undefined) => {
         if (!oldData) {
