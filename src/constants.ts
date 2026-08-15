@@ -6,6 +6,10 @@ export const DEBOUNCE_DELAY = 300;
 export const TYPING_TIMEOUT = 3000;
 export const MESSAGE_PAGE_SIZE = 50;
 
+export const APP_NAME = "Chatly";
+
+export const SPECIAL_CHAR_PASS_FILTER = /[!@#$%^&*()_+\-=$$$${};':"\\|,.<>/?]/;
+
 export const USER_STATUS = {
   ONLINE: 'online',
   OFFLINE: 'offline',

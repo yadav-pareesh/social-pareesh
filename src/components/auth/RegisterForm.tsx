@@ -5,6 +5,8 @@ import { useRegister } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -16,16 +18,19 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterForm = () => {
   const registerMutation = useRegister();
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = (data: RegisterFormData) => {
     registerMutation.mutate(data);
+    setShowPassword(false);
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="username" className="text-sm font-medium">
@@ -61,12 +66,25 @@ export const RegisterForm = () => {
           <label htmlFor="password" className="text-sm font-medium">
             Password
           </label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            {...register('password')}
-          />
+          <div className='relative m-1'>
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              {...register('password')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-destructive text-sm mt-1">{errors.password.message}</p>
           )}
