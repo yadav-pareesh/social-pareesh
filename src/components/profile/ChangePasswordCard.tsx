@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUIStore } from '@/stores/uiStore';
 import { toast } from '../ui/toast';
 import { usersAPI } from '@/services/api/users';
+import { SPECIAL_CHAR_PASS_FILTER } from '@/constants';
 
 // Validation Schema
 const changePasswordSchema = z.object({
@@ -63,7 +64,7 @@ export const ChangePasswordCard = () => {
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^a-zA-Z0-9]/.test(password)) strength++;
-    if (/[!@#$%^&*()_+\-=$$$${};':"\\|,.<>\/?]/.test(password)) strength++;
+    if (SPECIAL_CHAR_PASS_FILTER.test(password)) strength++;
     return strength;
   };
 
@@ -81,7 +82,7 @@ export const ChangePasswordCard = () => {
 
   // Change password mutation
   const changePasswordMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ChangePasswordFormData) => {
       const response = await usersAPI.changePassword(
         user?.id as string,
         data.currentPassword,
@@ -218,8 +219,8 @@ export const ChangePasswordCard = () => {
                 <li className={/[0-9]/.test(newPassword) ? 'text-green-600' : ''}>
                   {/[0-9]/.test(newPassword) ? '✓' : '○'} One number
                 </li>
-                <li className={/[!@#$%^&*()_+\-=$$$${};':"\\|,.<>\/?]/.test(newPassword) ? 'text-green-600' : ''} >
-                  {/[!@#$%^&*()_+\-=$$$${};':"\\|,.<>\/?]/.test(newPassword) ? '✓' : '○'} One special character
+                <li className={SPECIAL_CHAR_PASS_FILTER.test(newPassword) ? 'text-green-600' : ''} >
+                  {SPECIAL_CHAR_PASS_FILTER.test(newPassword) ? '✓' : '○'} One special character
                 </li>
               </ul>
             </div>

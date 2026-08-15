@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
 import { RegisterForm } from '../components/auth/RegisterForm';
+import { APP_NAME } from '@/constants';
 
 type AuthType = 'login' | 'register';
 
@@ -16,7 +17,7 @@ export const Auth = ({ type: propType }: AuthProps) => {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">ChatApp</h1>
+          <h1 className="text-3xl font-bold mb-2">{APP_NAME}</h1>
           <p className="text-muted-foreground">
             {currentType === 'register'
               ? 'Create a new account'

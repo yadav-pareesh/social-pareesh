@@ -5,6 +5,8 @@ import { useLogin } from '../../hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -15,12 +17,14 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginForm = () => {
   const loginMutation = useLogin();
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit = (data: LoginFormData) => {
     loginMutation.mutate(data);
+    setShowPassword(false);
   };
 
   return (
@@ -51,12 +55,26 @@ export const LoginForm = () => {
           <label htmlFor="password" className="text-sm font-medium">
             Password
           </label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            {...register('password')}
-          />
+          <div className="relative mt-1">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('password')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition"
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+          
           {errors.password && (
             <p className="text-destructive text-sm mt-1">{errors.password.message}</p>
           )}

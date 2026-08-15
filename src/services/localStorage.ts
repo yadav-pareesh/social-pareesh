@@ -1,3 +1,5 @@
+import type { User } from "@/types";
+
 const STORAGE_PREFIX = 'chatapp_';
 
 export const storageService = {
@@ -13,7 +15,7 @@ export const storageService = {
     localStorage.removeItem(`${STORAGE_PREFIX}token`);
   },
 
-  setUser: (user: any) => {
+  setUser: (user: User) => {
     localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(user));
   },
 
@@ -32,7 +34,7 @@ export const storageService = {
 
   getTheme: (): 'light' | 'dark' => {
     const theme = localStorage.getItem(`${STORAGE_PREFIX}theme`);
-    return (theme as 'light' | 'dark') || 'light';
+    return (theme as 'light' | 'dark') || 'dark';
   },
 
   clear: () => {
