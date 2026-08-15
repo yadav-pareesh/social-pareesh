@@ -33,7 +33,7 @@ export const Navbar = () => {
           <h1
             className="cursor-pointer text-xl font-bold hover:opacity-80 transition"
           >
-            AuraChat
+            Chatly
           </h1>
 
           {/* Back Button */}
