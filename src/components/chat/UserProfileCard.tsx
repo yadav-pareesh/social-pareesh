@@ -1,4 +1,5 @@
-import type{ User } from '../../types';
+import { useRef, useEffect } from 'react';
+import type { User } from '../../types';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { formatRelativeTime, formatDate } from '../../utils/formatters';
 import { Avatar } from '../common/Avatar';
@@ -19,6 +20,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { friendsAPI } from '../../services/api/friends';
 import { useUIStore } from '@/stores/uiStore';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfileCardProps {
   user: User;
@@ -29,12 +31,16 @@ export const UserProfileCard = ({
   user,
   onMessage,
 }: UserProfileCardProps) => {
-  const { setShowUserCard } = useUIStore()
+  const { setShowUserCard } = useUIStore();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
   const { data: statusData } = useOnlineStatus(user.id);
   const { data: friendshipStatus } = useQuery({
     queryKey: ['friendship', user.id],
     queryFn: () => friendsAPI.getFriends(),
   });
+  
   const isOnline = statusData?.data?.status === 'online';
   const isAway = statusData?.data?.status === 'away';
   const lastSeen = statusData?.data?.lastSeen
@@ -43,24 +49,68 @@ export const UserProfileCard = ({
 
   const memberSince = formatDate(new Date(user.createdAt));
 
+  // Handle click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside the card
+      if (
+        containerRef.current &&
+        cardRef.current &&
+        !cardRef.current.contains(event.target as Node)
+      ) {
+        setShowUserCard(false);
+      }
+    };
+
+    // Handle escape key
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowUserCard(false);
+      }
+    };
+
+    // Delay adding listener to avoid immediate trigger
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
+    }, 0);
+
+    // Cleanup
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [setShowUserCard]);
+
   const handleBlockUser = () => {
     console.log('Block user:', user.username);
     // TODO: implement block user functionality
-  }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div 
+      ref={containerRef}
+      className="fixed inset-0 z-50 bg-black/50 dark:bg-black/80 flex items-center justify-center p-4"
+    >
+      <Card 
+        ref={cardRef}
+        className="w-full max-w-md relative"
+        role="dialog"
+        aria-modal="true"
+      >
         {/* Close Button */}
-        <div className="absolute">
-        <Button
+        <div className="absolute top-4 right-4 z-10">
+          <Button
             size="icon"
             variant="ghost"
-            onClick={()=>setShowUserCard(false)}
-        >
-          <X className="h-5 w-5" />
-        </Button>
+            onClick={() => setShowUserCard(false)}
+            aria-label="Close profile card"
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
+
         <CardHeader className="text-center pt-8">
           {/* Avatar */}
           <div className="flex justify-center mb-4">
@@ -92,25 +142,27 @@ export const UserProfileCard = ({
           {/* Friendship status */}
           <div className="grid grid-cols-2 gap-2">
             {friendshipStatus?.success && (
-              <Button variant="outline" size="sm" className="flex-1">
-              <Contact className="h-4 w-4 mr-2" />
-                  Friend Request
+              <Button disabled={true} variant="outline" size="sm" className="flex-1">
+                <Contact className="h-4 w-4 mr-2" />
+                Friend Request
               </Button>
             )}
 
             {friendshipStatus?.success && (
-              <Button variant="outline" size="sm" className="flex-1">
-              <MessageSquare className="h-4 w-4 mr-2" />
-                  Message
+              <Button onClick={()=>setShowUserCard(false)} variant="outline" size="sm" className="flex-1">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Message
               </Button>
             )}
           </div>
-          
+
           {/* Bio */}
           {user.bio && (
             <div>
               <p className="text-sm text-muted-foreground mb-2">Bio</p>
-              <p className="text-sm bg-muted rounded-lg p-3">{user.bio}</p>
+              <p className="text-sm bg-muted dark:bg-gray-800 rounded-lg p-3">
+                {user.bio}
+              </p>
             </div>
           )}
 
@@ -135,14 +187,14 @@ export const UserProfileCard = ({
           <div className="space-y-3 text-sm">
             <div className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground break-all">{user.email}</span>
+              <span className="text-muted-foreground break-all">
+                {user.email}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                Joined {memberSince}
-              </span>
+              <span className="text-muted-foreground">Joined {memberSince}</span>
             </div>
           </div>
 
@@ -153,7 +205,8 @@ export const UserProfileCard = ({
               size="sm"
               className="w-full"
               onClick={onMessage}
-              title='Call'
+              title="Call"
+              aria-label="Call user"
             >
               <Phone className="h-4 w-4 mr-2" />
             </Button>
@@ -162,7 +215,8 @@ export const UserProfileCard = ({
               size="sm"
               className="w-full"
               onClick={onMessage}
-              title='Video'
+              title="Video"
+              aria-label="Video call user"
             >
               <Video className="h-4 w-4 mr-2" />
             </Button>
@@ -171,7 +225,8 @@ export const UserProfileCard = ({
               size="sm"
               className="w-full text-destructive"
               onClick={handleBlockUser}
-              title='Block'
+              title="Block"
+              aria-label="Block user"
             >
               <Ban className="h-4 w-4 mr-2" />
             </Button>
@@ -179,7 +234,8 @@ export const UserProfileCard = ({
               variant="outline"
               size="sm"
               className="w-full"
-              title='Share'
+              title="Share"
+              aria-label="Share profile"
             >
               <Share2 className="h-4 w-4 mr-2" />
             </Button>
