@@ -1,16 +1,18 @@
+import * as React from 'react';
 import { ChatList } from './ChatList';
 import { SearchUsers } from './SearchUsers';
-import { useUIStore } from '../../stores/uiStore';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { messagesAPI } from '../../services/api/messages';
 import type { User } from '../../types';
-import { X } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { sidebarOpen, toggleSidebar } = useUIStore();
   const { user } = useAuthStore();
-  const { setActiveConversation, updateConversation } = useChatStore();
+  const { activeConversationId, conversations, setActiveConversation, updateConversation } = useChatStore();
+
+  const activeConversation = Array.from(conversations.values()).find(
+    (c) => c.id === activeConversationId
+  );
 
   const handleSelectUser = async (selectedUser: User) => {
     if (!user) return;
@@ -27,29 +29,18 @@ export const Sidebar = () => {
   };
 
   return (
-    <>
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 lg:hidden mt-160 z-40"
-          onClick={toggleSidebar}
-        />
-      )}
-
-      <div
-        className={`fixed inset-y-0 left-0 w-80 bg-background border-r flex flex-col transition-transform lg:relative lg:translate-x-0 z-40 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between p-4 border-b lg:hidden">
-          <h2 className="font-bold">Messages</h2>
-          <button onClick={toggleSidebar}>
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <SearchUsers onSelectUser={handleSelectUser} />
+    <aside
+      className={`min-h-0 h-full overflow-hidden flex flex-col bg-card border-r border-border shrink-0 transition-all ${
+        /* On mobile: Hide list if a conversation is open. On desktop: always show 80/96 width */
+        activeConversation ? 'hidden lg:flex lg:w-80 xl:w-96' : 'flex w-full lg:w-80 xl:w-96'
+      }`}
+    >
+      <div className="flex items-center px-4 h-14 border-b border-border">
+        <SearchUsers title="Recent messages" onSelectUser={handleSelectUser} />
+      </div>
+      <div className="flex-1 overflow-hidden h-full">
         <ChatList />
       </div>
-    </>
+    </aside>
   );
 };

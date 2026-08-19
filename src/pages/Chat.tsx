@@ -1,36 +1,36 @@
-import { useAuthStore } from '../stores/authStore';
 import { useChatStore } from '../stores/chatStore';
-import { useSocket } from '../hooks/useSocket';
-import { useGetConversations } from '../hooks/useChat';
-import { Sidebar } from '../components/sidebar/Sidebar';
-import { ChatWindow } from '../components/chat/ChatWindow';
-import { Navbar } from '../components/common/Navbar';
+import { Sidebar } from '@/components/sidebar/Sidebar';
+import { ChatWindow } from '@/components/chat/ChatWindow';
+import { useAuthStore } from '@/stores/authStore';
 
 export const Chat = () => {
-  const { user } = useAuthStore();
-  const { activeConversationId, conversations } = useChatStore();
-  useSocket();
-  useGetConversations();
+  const {user} = useAuthStore();
+  const { conversations, activeConversationId } = useChatStore();
 
   const activeConversation = Array.from(conversations.values()).find(
     (c) => c.id === activeConversationId
   );
-
   return (
-    <div className="flex flex-col h-screen">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <div className="flex-1 flex flex-col">
-          {activeConversation && user ? (
-            <ChatWindow conversation={activeConversation} currentUser={user} />
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <p>Select a conversation to start chatting</p>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="flex h-full w-full overflow-hidden bg-background">
+      {/* 1. Recent Messages Sidebar */}
+      <Sidebar />
+
+      {/* 2. Chat Conversation View */}
+      <section
+        className={`flex-1 flex flex-col h-full min-w-0 bg-background ${
+          /* On mobile: Hide if no active chat. On desktop: always show flex-1 */
+          activeConversation ? 'flex w-full' : 'hidden lg:flex'
+        }`}
+      >
+        {activeConversation ? (
+            user && <ChatWindow conversation={activeConversation} currentUser={user} />
+        ) : (
+          /* Empty state on desktop when no conversation is selected */
+          <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center p-6 text-muted-foreground">
+            <p className="text-sm font-medium">Select a conversation to start chatting</p>
+          </div>
+        )}
+      </section>
     </div>
   );
 };
