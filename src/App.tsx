@@ -1,30 +1,43 @@
+import { useEffect, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { useAuthStore } from './stores/authStore';
 import { useUIStore } from './stores/uiStore';
-import { useEffect } from 'react';
 import { Auth } from './pages/Auth';
 import { Chat } from './pages/Chat';
 import { Profile } from './pages/Profile';
 import { NotFound } from './pages/NotFound';
+import { MainLayout } from './MainLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { NotificationSettings } from './components/common/NotificationSettings';
 import { notificationService } from './services/notificationService';
-
-const queryClient = new QueryClient();
+import ChatHomePage from './pages/Home';
+import { ChangePasswordPage } from './components/profile/ChangePasswordCard';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
   const { isDarkMode } = useUIStore();
 
-  useEffect(() => {
-    return () => {
-      notificationService.dispose();
-    };
-  }, []);
+  // Single client instance with production-grade defaults for chat apps
+  const queryClient = useMemo(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 1000 * 60 * 2, // 2 minutes cache validity
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      }),
+    []
+  );
 
   useEffect(() => {
     hydrate();
+    return () => {
+      notificationService.dispose();
+    };
   }, [hydrate]);
 
   useEffect(() => {
@@ -39,37 +52,27 @@ export const App = () => {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
+          {/* Public Authentication Routes (No Navbar) */}
           <Route path="/login" element={<Auth type="login" />} />
           <Route path="/register" element={<Auth type="register" />} />
 
+          {/* Authenticated Application Shell (With Common Vertical Navbar) */}
           <Route
-            path="/chat"
             element={
               <ProtectedRoute>
-                <Chat />
+                <MainLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route path="/home" element={<ChatHomePage />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/notification" element={<NotificationSettings />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route index element={<Navigate to="/home" replace />} />
+          </Route>
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/notification"
-            element={
-              <ProtectedRoute>
-                <NotificationSettings />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route path="/" element={<Navigate to="/chat" replace />} />
+          {/* Fallback Catch-All */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>

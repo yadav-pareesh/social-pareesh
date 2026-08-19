@@ -11,26 +11,40 @@ interface MessageListProps {
   conversationId: string;
 }
 
+// Stable empty array reference outside the component
+const EMPTY_TYPING_USERS: string[] = [];
+
 export const MessageList = ({
   messages,
   currentUser,
   isLoading,
   conversationId,
 }: MessageListProps) => {
-  const { getTypingUsers } = useChatStore();
+  // Stable selector that returns the same array reference when idle
+  const typingUsers = useChatStore(
+    (state) => state.typingUsers[conversationId] ?? EMPTY_TYPING_USERS
+  );
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingUsers = getTypingUsers(conversationId);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Only scroll when messages count changes or someone starts/stops typing
+  const messagesCount = messages.length;
+  const isTyping = typingUsers.length > 0;
+
   useEffect(() => {
     scrollToBottom();
-  }, [messages, typingUsers]);
+  }, [messagesCount, isTyping]);
 
   if (isLoading) {
-    return <div className="flex-1 flex items-center justify-center">Loading messages...</div>;
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+        Loading messages...
+      </div>
+    );
   }
 
   return (
@@ -43,7 +57,7 @@ export const MessageList = ({
           conversationId={conversationId}
         />
       ))}
-      {typingUsers.length > 0 && <TypingIndicator />}
+      {isTyping && <TypingIndicator />}
       <div ref={messagesEndRef} />
     </div>
   );

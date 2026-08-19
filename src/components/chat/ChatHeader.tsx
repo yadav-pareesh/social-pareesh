@@ -1,7 +1,7 @@
 import type { User } from '../../types';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useChatStore } from '../../stores/chatStore';
-import { Phone, Video, Info, Search, Bell, MoreVertical, Ban } from 'lucide-react';
+import { Phone, Video, Info, Search, Bell, MoreVertical, Ban, ArrowLeft } from 'lucide-react';
 import { Button } from '../common/Button';
 import { formatLastSeen } from '../../utils/formatters';
 import { Avatar } from '../common/Avatar';
@@ -17,6 +17,7 @@ interface ChatHeaderProps {
 export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   const { data: statusData } = useOnlineStatus(user.id);
   const { setShowUserCard } = useUIStore();
+  const { setActiveConversation } = useChatStore()
    const [isMuted, setIsMuted] = useState(false);
 
   const isOnlineFromStore = useChatStore((state) => state.isUserOnline(user.id));
@@ -69,8 +70,17 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   }
 
   return (
-    <div className="flex items-center justify-between p-4 border-b bg-background">
-      <div onClick={()=>setShowUserCard(true)} className="flex cursor-pointer items-center gap-3">
+    <div className="flex w-full items-center justify-between h-14 p-4 border-b bg-background">
+      <div className="flex items-center gap-3">
+        <button
+                  type="button"
+                  onClick={() => setActiveConversation(null)}
+                  aria-label="Back to conversations"
+                  className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+        <div onClick={()=>setShowUserCard(true)} className="flex cursor-pointer items-center gap-3">
         <Avatar 
           user={user} 
           size="md" 
@@ -90,6 +100,8 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
           </p>
         </div>
       </div>
+      </div>
+      
 
       <div className="flex gap-2 align-center items-center">
         <Button onClick={handleCall} size="icon" variant="ghost" aria-label="Voice call">

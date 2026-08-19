@@ -1,197 +1,247 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useChatStore } from '../stores/chatStore';
 import { getSocket } from '../services/socket';
-import { messagesAPI } from '../services/api/messages';
 import { apiClient } from '../lib/api-client';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Message, Conversation } from '../types';
+import type { Message, Conversation, User } from '../types';
 
 export const useSocket = () => {
   const { user } = useAuthStore();
   const { activeConversationId } = useChatStore();
-  const {
-    addMessage,
-    setTypingUser,
-    setOnlineUsers,
-    addOnlineUser,
-    removeOnlineUser,
-    markMessageAsRead,
-    updateConversation,
-  } = useChatStore();
   const queryClient = useQueryClient();
-  const listenersSetUp = useRef(false);
 
   useEffect(() => {
-    if (!user || listenersSetUp.current) return;
+    if (!user?.id) return;
 
     const socket = getSocket();
-    listenersSetUp.current = true;
 
-    socket.on('connect', async () => {
+    const handleConnect = async () => {
       socket.emit('user:login', { userId: user.id });
 
-      try {
-        const onlineResponse = await apiClient.get('/users/online');
-        if (onlineResponse.data && Array.isArray(onlineResponse.data)) {
-          setOnlineUsers(new Set(onlineResponse.data.map((onlineUser: { id: string }) => onlineUser.id)));
-        }
-      } catch (error) {
-        console.warn('Unable to fetch online users:', error);
+      const currentActiveId = useChatStore.getState().activeConversationId;
+      if (currentActiveId) {
+        socket.emit('conversation:join', { conversationId: currentActiveId });
       }
-    });
 
-    // Message events
-    socket.on('message:new', (message: Message) => {
-      addMessage(message.conversationId, message);
-      window.dispatchEvent(
-        new CustomEvent('newMessage', {
-          detail: message,
-        })
-      );
-      // Update messages cache
-      queryClient.setQueryData(['messages', message.conversationId], (oldData: Message[] | undefined) => {
-        if (!oldData) {
-          return [message];
+      try {
+        const res = await apiClient.get<User[]>('/users/online');
+        if (res.data && Array.isArray(res.data)) {
+          useChatStore.getState().setOnlineUsers(new Set(res.data.map((u) => u.id)));
         }
+      } catch (err) {
+        console.warn('Could not fetch online users:', err);
+      }
+    };
 
-        const existing = oldData.some((msg: Message) => msg.id === message.id);
-        if (existing) return oldData;
+    // 1. INCOMING MESSAGE HANDLER
+    const handleNewMessage = (message: Message) => {
+      const currentActiveId = useChatStore.getState().activeConversationId;
 
-        return [...oldData, message];
+      // Update Zustand Store (handles replacing temp messages)
+      useChatStore.getState().addMessage(message.conversationId, message);
+
+      // Stop typing status for the sender once message is received
+      useChatStore.getState().setTypingUser(message.senderId, message.conversationId, false);
+
+      window.dispatchEvent(new CustomEvent('newMessage', { detail: message }));
+
+      // Update React Query cache replacing temp message
+      queryClient.setQueryData(['messages', message.conversationId], (old: Message[] | undefined) => {
+        if (!old) return [message];
+        if (old.some((m) => m.id === message.id)) return old;
+
+        const withoutTemp = old.filter(
+          (m) =>
+            !(
+              m.id.startsWith('temp-') &&
+              m.senderId === message.senderId &&
+              m.content === message.content
+            )
+        );
+        return [...withoutTemp, message];
       });
 
-      // Update unread count for the conversation if message is from another user
-      // AND the user is not actively viewing this conversation
-      if (message.senderId !== user.id && message.conversationId !== activeConversationId) {
-        queryClient.setQueryData(['conversations'], (oldData: Conversation[] | undefined) => {
-          if (!oldData) return oldData;
-          return oldData.map((conv: Conversation) =>
-            conv.id === message.conversationId
-              ? { ...conv, unreadCount: (conv.unreadCount || 0) + 1 }
-              : conv
-          );
+      // Acknowledge read if viewing
+      if (currentActiveId === message.conversationId && message.senderId !== user.id) {
+        socket.emit('message:read', {
+          conversationId: message.conversationId,
+          messageId: message.id,
+          userId: user.id,
         });
       }
-    });
 
-    socket.on('message:updated', (message: Message) => {
-      // Update messages cache
-      queryClient.setQueryData(['messages', message.conversationId], (oldData: Message[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.map((msg: Message) =>
-          msg.id === message.id ? { ...msg, content: message.content, editedAt: message.editedAt } : msg
-        );
+      // Reorder conversation list
+      queryClient.setQueryData(['conversations'], (oldConvs: Conversation[] | undefined) => {
+        if (!oldConvs) return oldConvs;
+        const target = oldConvs.find((c) => c.id === message.conversationId);
+        if (!target) {
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          return oldConvs;
+        }
+
+        const isViewing = currentActiveId === message.conversationId;
+        const updated: Conversation = {
+          ...target,
+          lastMessage: message,
+          lastMessageTime: message.createdAt,
+          unreadCount: isViewing || message.senderId === user.id ? 0 : (target.unreadCount || 0) + 1,
+        };
+
+        return [updated, ...oldConvs.filter((c) => c.id !== message.conversationId)];
       });
-    });
-
-    socket.on('message:deleted', (data: { messageId: string; conversationId: string }) => {
-      // Update messages cache
-      queryClient.setQueryData(['messages', data.conversationId], (oldData: Message[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.filter((msg: Message) => msg.id !== data.messageId);
-      });
-    });
-
-    // Typing indicator
-    const applyTypingState = (data: { userId: string; conversationId?: string; isTyping?: boolean }, isTyping: boolean) => {
-      const conversationId = data.conversationId || activeConversationId;
-      if (!conversationId) return;
-      setTypingUser(data.userId, conversationId, isTyping);
     };
 
-    socket.on('typing:indicator', (data: { userId: string; conversationId?: string; isTyping: boolean }) => {
-      applyTypingState(data, data.isTyping);
-    });
+    // 2. READ RECEIPT
+    const handleMessageRead = (data: {
+      conversationId: string;
+      messageId?: string;
+      userId: string;
+    }) => {
+      if (data.messageId) {
+        useChatStore.getState().markMessageAsRead(data.conversationId, data.messageId, data.userId);
+      } else {
+        useChatStore.getState().markConversationAsRead(data.conversationId, data.userId);
+      }
 
-    socket.on('typing:start', (data: { userId: string; conversationId?: string }) => {
-      applyTypingState(data, true);
-    });
-
-    socket.on('typing:stop', (data: { userId: string; conversationId?: string }) => {
-      applyTypingState(data, false);
-    });
-
-    // Online status
-    socket.on('user:online', (data: { userId: string }) => {
-      addOnlineUser(data.userId);
-      queryClient.setQueryData(['onlineStatus', data.userId], (oldData: any) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: {
-            ...oldData.data,
-            status: 'online',
-          },
-        };
+      queryClient.setQueryData(['messages', data.conversationId], (old: Message[] | undefined) => {
+        if (!old) return old;
+        return old.map((msg) => {
+          if (!data.messageId || msg.id === data.messageId) {
+            return {
+              ...msg,
+              readBy: Array.from(new Set([...(msg.readBy || []), data.userId])),
+            };
+          }
+          return msg;
+        });
       });
-    });
 
-    socket.on('user:offline', (data: { userId: string }) => {
-      removeOnlineUser(data.userId);
-      queryClient.setQueryData(['onlineStatus', data.userId], (oldData: any) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          data: {
-            ...oldData.data,
-            status: 'offline',
-          },
-        };
+      queryClient.setQueryData(['conversations'], (oldConvs: Conversation[] | undefined) => {
+        if (!oldConvs) return oldConvs;
+        return oldConvs.map((c) => (c.id === data.conversationId ? { ...c, unreadCount: 0 } : c));
       });
-    });
+    };
 
-    // Read receipts
-    socket.on('message:read', (data: { messageId: string; userId: string; conversationId: string; readBy: string[] }) => {
-      // Invalidate the query to force a refresh - this triggers useConversationMessages to refetch
-      queryClient.invalidateQueries({ queryKey: ['messages', data.conversationId] });
-      
-      // Decrement unread count for the conversation
-      queryClient.setQueryData(['conversations'], (oldData: Conversation[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.map((conv) =>
-          conv.id === data.conversationId
-            ? { ...conv, unreadCount: Math.max(0, (conv.unreadCount || 1) - 1) }
-            : conv
-        );
-      });
-    });
+    // 3. TYPING HANDLERS (Handles both individual and indicator formats)
+    const handleTypingEvent = (data: {
+      userId: string;
+      conversationId?: string;
+      isTyping?: boolean;
+    }, isTyping: boolean) => {
+      const activeId = data.conversationId || useChatStore.getState().activeConversationId;
+      if (!activeId || data.userId === user.id) return;
+      useChatStore.getState().setTypingUser(data.userId, activeId, isTyping);
+    };
+
+    const onTypingStart = (data: any) => handleTypingEvent(data, true);
+    const onTypingStop = (data: any) => handleTypingEvent(data, false);
+    const onTypingIndicator = (data: any) => handleTypingEvent(data, Boolean(data.isTyping));
+
+    // 4. ONLINE STATUS
+    const handleUserOnline = (data: { userId: string }) => useChatStore.getState().addOnlineUser(data.userId);
+    const handleUserOffline = (data: { userId: string }) => useChatStore.getState().removeOnlineUser(data.userId);
+
+    // Socket Bindings
+    socket.on('connect', handleConnect);
+    socket.on('message:new', handleNewMessage);
+    socket.on('message:read', handleMessageRead);
+    socket.on('typing:start', onTypingStart);
+    socket.on('typing:stop', onTypingStop);
+    socket.on('typing:indicator', onTypingIndicator);
+    socket.on('user:online', handleUserOnline);
+    socket.on('user:offline', handleUserOffline);
+
+    if (socket.connected) {
+      handleConnect();
+    }
 
     return () => {
-      socket.removeAllListeners();
-      listenersSetUp.current = false;
+      socket.off('connect', handleConnect);
+      socket.off('message:new', handleNewMessage);
+      socket.off('message:read', handleMessageRead);
+      socket.off('typing:start', onTypingStart);
+      socket.off('typing:stop', onTypingStop);
+      socket.off('typing:indicator', onTypingIndicator);
+      socket.off('user:online', handleUserOnline);
+      socket.off('user:offline', handleUserOffline);
     };
-  }, [user, activeConversationId, addMessage, setTypingUser, setOnlineUsers, addOnlineUser, removeOnlineUser, markMessageAsRead, updateConversation, queryClient]);
+  }, [user?.id, queryClient]);
 
+  // Join Active Room & Emit Initial Read Event
   useEffect(() => {
-    if (!activeConversationId) return;
+    if (!activeConversationId || !user?.id) return;
 
     const socket = getSocket();
 
-    const joinRoom = () => {
+    const joinAndRead = () => {
       socket.emit('conversation:join', { conversationId: activeConversationId });
+      socket.emit('message:read', {
+        conversationId: activeConversationId,
+        userId: user.id,
+      });
+      useChatStore.getState().markConversationAsRead(activeConversationId, user.id);
     };
 
     if (socket.connected) {
-      joinRoom();
+      joinAndRead();
     } else {
-      socket.once('connect', joinRoom);
+      socket.once('connect', joinAndRead);
     }
 
     return () => {
       socket.emit('conversation:leave', { conversationId: activeConversationId });
     };
-  }, [activeConversationId]);
+  }, [activeConversationId, user?.id]);
 
   return getSocket();
 };
 
+// Optimistic Sender Hook
 export const useSendMessage = () => {
   const socket = getSocket();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
-  return async (conversationId: string, content: string) => {
-    if (!user?.id) return;
+  return async (conversationId: string, content: string, parentMessageId?: string) => {
+    if (!user?.id || !content.trim()) return;
+
+    const now = new Date();
+
+    const tempMessage: Message = {
+      id: `temp-${Date.now()}`,
+      conversationId,
+      senderId: user.id,
+      content,
+      createdAt: now,
+      readBy: [user.id],
+      parentMessageId,
+    };
+
+    // Add optimistic message
+    useChatStore.getState().addMessage(conversationId, tempMessage);
+
+    queryClient.setQueryData(
+      ['messages', conversationId],
+      (old: Message[] | undefined) => (old ? [...old, tempMessage] : [tempMessage])
+    );
+
+    queryClient.setQueryData(
+      ['conversations'],
+      (oldData: Conversation[] | undefined) => {
+        if (!oldData) return oldData;
+        const target = oldData.find((c) => c.id === conversationId);
+        if (!target) return oldData;
+
+        const updated: Conversation = {
+          ...target,
+          lastMessage: tempMessage,
+          lastMessageTime: now,
+        };
+
+        return [updated, ...oldData.filter((c) => c.id !== conversationId)];
+      }
+    );
 
     try {
       if (!socket.connected) {
@@ -200,36 +250,36 @@ export const useSendMessage = () => {
         });
       }
 
-      socket.emit('conversation:join', { conversationId });
-
-      // Only emit via socket - the socket handler will save to DB and broadcast to all users
       socket.emit('message:send', {
         conversationId,
         senderId: user.id,
         content,
+        parentMessageId,
       });
-
-      // The message will be received back via 'message:new' event and added to cache
-      // No need to make HTTP call - socket handler handles it
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('Failed to send message via socket:', error);
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       throw error;
     }
   };
 };
 
+// Typing Hook emitting both event flavors for compatibility
 export const useTypingIndicator = (conversationId: string) => {
   const socket = getSocket();
   const { user } = useAuthStore();
-  
+
   const startTyping = () => {
-    if (!user?.id) return;
+    if (!user?.id || !conversationId) return;
     socket.emit('typing:start', { conversationId, userId: user.id });
+    socket.emit('typing:indicator', { conversationId, userId: user.id, isTyping: true });
   };
 
   const stopTyping = () => {
-    if (!user?.id) return;
+    if (!user?.id || !conversationId) return;
     socket.emit('typing:stop', { conversationId, userId: user.id });
+    socket.emit('typing:indicator', { conversationId, userId: user.id, isTyping: false });
   };
 
   return { startTyping, stopTyping };
