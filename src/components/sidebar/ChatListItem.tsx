@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 import { MoreVertical, Trash } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '../common/DropdownMenu';
 import { messagesAPI } from '@/services/api/messages';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '../ui/toast';
 import { ConfirmDeleteModal } from '../modals/ConfirmDeleteModal';
 import { useState } from 'react';
@@ -24,6 +24,7 @@ export const ChatListItem = ({
   onClick,
 }: ChatListItemProps) => {
   const { setActiveConversation } = useChatStore();
+  const queryClient = useQueryClient();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const deleteConversationMutation = useMutation({
@@ -33,18 +34,20 @@ export const ChatListItem = ({
     },
     onSuccess: async () => {
       setShowDeleteConfirm(false);
+      // Invalidate queries so the list updates automatically
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.add({
         title: "Success",
         description: "Conversation deleted successfully.",
         type: "success"
-      })
+      });
     },
     onError: (error) => {
       toast.add({
         title: "Error",
         description: error.message,
         type: "error"
-      })
+      });
     },
   });
 
@@ -61,79 +64,125 @@ export const ChatListItem = ({
     }
   };
 
-  const handleDeleteClick = () => {
+  // Allow selecting chats with keyboard
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
+  // Stop propagation here so clicking delete doesn't select the chat
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); 
     setShowDeleteConfirm(true);
   };
 
   const handleDelete = async () => {
     await deleteConversationMutation.mutate(conversation.id);
-  }
+  };
 
   const lastMessage = conversation.lastMessage?.content || 'No messages yet';
   const hasUnread = conversation.unreadCount && conversation.unreadCount > 0;
+
+  // Format time if available
+  const timeString = conversation.lastMessageTime 
+    ? new Date(conversation.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
 
   return (
     <>
       <div
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
         className={cn(
-          'w-full px-4 py-3 border transition-all cursor-pointer',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'w-full px-3 py-3 sm:px-4 border-b border-transparent transition-all cursor-pointer select-none',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
           'flex items-center gap-3',
           isActive
-            ? 'bg-accent text-accent-foreground border-accent shadow-md'
-            : 'bg-card border-border hover:border-primary/50 hover:shadow-sm active:shadow-md'
+            ? 'bg-accent/80 text-accent-foreground border-accent shadow-sm'
+            : 'bg-background hover:bg-muted/50 active:bg-muted'
         )}
-        tabIndex={0}
       >
-        {/* Avatar with online indicator */}
+        {/* Avatar */}
         <Avatar
           user={otherUser}
           size="md"
           showOnlineIndicator={true}
-          className="flex-shrink-0 border"
+          className="flex-shrink-0"
         />
 
-        {/* Text content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex flex-col flex-1">
-              <h4 className="font-semibold text-sm truncate pr-1">
-                {otherUser.username}
-              </h4>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {lastMessage}
-              </p>
-            </div>
+        {/* Content Container */}
+        <div className="flex flex-col flex-1 min-w-0 justify-center">
+          
+          {/* Top Row: Name & Time */}
+          <div className="flex items-center justify-between mb-0.5">
+            <h4 className="font-semibold text-sm truncate pr-2 text-foreground">
+              {otherUser.username}
+            </h4>
+            {timeString && (
+              <span className={cn(
+                "text-[11px] whitespace-nowrap flex-shrink-0",
+                hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                {timeString}
+              </span>
+            )}
+          </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Unread badge */}
+          {/* Bottom Row: Message & Actions */}
+          <div className="flex items-center justify-between gap-2">
+            <p className={cn(
+              "text-[13px] truncate flex-1",
+              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+            )}>
+              {lastMessage}
+            </p>
+
+            {/* Actions Wrapper - onClick stops event bubbling to the parent div */}
+            <div 
+              className="flex items-center gap-1 flex-shrink-0"
+              onClick={(e) => e.stopPropagation()} 
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               {Boolean(hasUnread) && (
-                <div className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center flex-shrink-0">
+                <div className="bg-primary text-primary-foreground text-[10px] font-bold rounded-full min-w-[20px] h-[20px] px-1.5 flex items-center justify-center">
                   {conversation.unreadCount}
                 </div>
               )}
               
-              {/* Dropdown menu */}
-              <DropdownMenu trigger={<MoreVertical className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />}>
+              <DropdownMenu 
+                trigger={
+                  <button 
+                    type="button" 
+                    className="p-1 rounded-full hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                    aria-label="Chat options"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                }
+              >
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={handleDeleteClick}>
-                    <div className='flex items-center text-destructive gap-2'>
+                    <div className="flex items-center text-destructive gap-2 font-medium">
                       <Trash className="h-4 w-4" />
-                      Delete conversation
+                      Delete chat
                     </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </div>
+
         </div>
       </div>
 
       {showDeleteConfirm && (
         <ConfirmDeleteModal
           title="Delete Conversation"
-          description="This action cannot be undone. All your data will be permanently deleted."
+          description={`Are you sure you want to delete your conversation with ${otherUser.username}? This cannot be undone.`}
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />

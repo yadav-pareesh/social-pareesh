@@ -61,7 +61,7 @@ export const DropdownMenuContent = ({ children }: DropdownMenuContentProps) => {
 
 interface DropdownMenuItemProps {
   children: ReactNode;
-  onClick?: () => void;
+  onClick?: (e:React.MouseEvent) => void;
 }
 
 export const DropdownMenuItem = ({ children, onClick }: DropdownMenuItemProps) => {

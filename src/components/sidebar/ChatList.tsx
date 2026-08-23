@@ -4,42 +4,55 @@ import { useGetConversations } from '../../hooks/useChat';
 import { ChatListItem } from './ChatListItem';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
+import { MessageSquareOff } from 'lucide-react';
 
 export const ChatList = () => {
   const { user } = useAuthStore();
-  const { data: serverConversations, isLoading } = useGetConversations();
-  const { conversations, setConversations, activeConversationId } = useChatStore();
+  
+  // Use React Query as the single source of truth for the UI
+  const { data: conversations, isLoading } = useGetConversations(); 
+  
+  const { setConversations, activeConversationId } = useChatStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
 
-  // Populate Zustand store from server query
+  // Keep Zustand quietly synced in the background for other components that might need it
   React.useEffect(() => {
-    if (serverConversations && serverConversations.length > 0) {
-      setConversations(serverConversations);
+    if (conversations && conversations.length > 0) {
+      setConversations(conversations);
     }
-  }, [serverConversations, setConversations]);
+  }, [conversations, setConversations]);
 
+  // Close sidebar on mobile when a chat is selected
   React.useEffect(() => {
-    if (sidebarOpen) {
+    if (sidebarOpen && activeConversationId) {
       toggleSidebar();
     }
-  }, [activeConversationId]);
+  }, [activeConversationId, sidebarOpen, toggleSidebar]);
 
-  // Convert Map to Array (Maintains descending order)
-  const conversationList = React.useMemo(() => {
-    return Array.from(conversations.values());
-  }, [conversations]);
-
-  if (isLoading && conversationList.length === 0) {
-    return <div className="p-4 text-xs text-muted-foreground">Loading conversations...</div>;
+  if (isLoading && (!conversations)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-4 text-muted-foreground space-y-3">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm">Loading chats...</p>
+      </div>
+    );
   }
 
-  if (conversationList.length === 0) {
-    return <div className="p-4 text-center text-xs text-muted-foreground">No conversations yet</div>;
+  if (!conversations || conversations.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center text-muted-foreground space-y-3">
+        <div className="bg-muted p-3 rounded-full">
+          <MessageSquareOff className="h-6 w-6 opacity-70" />
+        </div>
+        <p className="text-sm">No conversations yet.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 h-full divide-y divide-border/40">
-      {conversationList.map((conversation) => (
+    <div className="flex-1 overflow-y-auto min-h-0 h-full divide-y divide-border/40 custom-scrollbar">
+      {/* Map directly over the React Query data for instant socket updates */}
+      {conversations.map((conversation) => (
         <ChatListItem
           key={conversation.id}
           conversation={conversation}

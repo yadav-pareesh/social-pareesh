@@ -12,29 +12,68 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { notificationService } from '@/services/notificationService';
+import { notificationService, type SoundConfig } from '@/services/notificationService';
 import * as React from 'react';
 import { Switch } from './Switch';
 
 export const NotificationSettings = () => {
   const navigate = useNavigate();
-  const {
-    isEnabled,
-    soundEnabled,
-    vibrateEnabled,
-    browserNotificationEnabled,
-    toggleNotifications,
-    toggleSound,
-    toggleVibrate,
-    toggleBrowserNotification,
-  } = useNotificationStore();
+  
+  // 1. Use Zustand selectors for robust reactivity (prevents unnecessary re-renders)
+  const isEnabled = useNotificationStore((s) => s.isEnabled);
+  const soundEnabled = useNotificationStore((s) => s.soundEnabled);
+  const vibrateEnabled = useNotificationStore((s) => s.vibrateEnabled);
+  const browserNotificationEnabled = useNotificationStore((s) => s.browserNotificationEnabled);
+  
+  const toggleNotifications = useNotificationStore((s) => s.toggleNotifications);
+  const toggleSound = useNotificationStore((s) => s.toggleSound);
+  const toggleVibrate = useNotificationStore((s) => s.toggleVibrate);
+  const toggleBrowserNotification = useNotificationStore((s) => s.toggleBrowserNotification);
 
   const [soundVolumes, setSoundVolumes] = React.useState<Record<string, number>>({});
   const [playingKey, setPlayingKey] = React.useState<string | null>(null);
+  const [sounds, setSounds] = React.useState<SoundConfig[]>([]);
 
-  const sounds = React.useMemo(() => {
-    return notificationService.getSounds?.() || [];
-  }, []);
+  React.useEffect(() => {
+    const fetchAndRegisterSounds = async () => {
+      try {
+        const loadedSounds = await notificationService.getSounds?.() || [];
+        
+        // Auto-register sounds if your service requires it before playing
+        loadedSounds.forEach((sound) => {
+          const volume = soundVolumes[sound.key] ?? sound.volume ?? 0.5;
+          // Ensure path matches exactly where your mp3s are in your public folder
+          notificationService.registerSound?.(sound.key, `/sounds/${sound.key}.mp3`, volume);
+        });
+
+        setSounds(loadedSounds);
+      } catch (error) {
+        console.error('Failed to load notification sounds:', error);
+        setSounds([]);
+      }
+    };
+    fetchAndRegisterSounds();
+  }, []); // Run once on mount
+
+  // 3. Handle strict browser notification permissions safely
+  const handleBrowserNotificationToggle = async (checked: boolean) => {
+    if (checked) {
+      if (!('Notification' in window)) {
+        alert('Your browser does not support desktop notifications.');
+        return;
+      }
+      
+      // If permission isn't already granted, ask the user right now during the click event
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          // If the user denies, do not toggle the store state to true
+          return;
+        }
+      }
+    }
+    toggleBrowserNotification();
+  };
 
   const handleVolumeChange = (key: string, volume: number) => {
     setSoundVolumes((prev) => ({ ...prev, [key]: volume }));
@@ -43,14 +82,15 @@ export const NotificationSettings = () => {
 
   const handleTestSound = (key: string) => {
     setPlayingKey(key);
-    notificationService.playSound?.(key);
+    // Pass 'true' to force play regardless of Zustand toggles
+    notificationService.playSound?.(key, true); 
     setTimeout(() => setPlayingKey(null), 1200);
   };
-
+  
   return (
     <div className="flex flex-1 h-full w-full overflow-y-auto bg-background text-foreground">
       <div className="mx-auto w-full max-w-3xl p-6 sm:p-10 space-y-8">
-        {/* Header with Back Button Positioned Inline */}
+        {/* Header */}
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -69,10 +109,10 @@ export const NotificationSettings = () => {
         </div>
 
         {/* Master Alert Setting */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card/60 shadow-sm">
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card/60 shadow-sm transition-colors hover:bg-card/80">
           <div className="flex items-center gap-3.5">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+              className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
                 isEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
               }`}
             >
@@ -94,10 +134,10 @@ export const NotificationSettings = () => {
         </div>
 
         {/* Sub-Preferences Group */}
-        {isEnabled ? (
-          <div className="space-y-6">
+        {isEnabled && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="divide-y divide-border rounded-xl border border-border bg-card/40 overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between p-4">
+              <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Volume2 className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -112,7 +152,7 @@ export const NotificationSettings = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4">
+              <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Vibrate className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -127,7 +167,7 @@ export const NotificationSettings = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4">
+              <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <Globe className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -138,13 +178,13 @@ export const NotificationSettings = () => {
                 <Switch
                   aria-label="Toggle browser notifications"
                   checked={browserNotificationEnabled}
-                  onCheckedChange={toggleBrowserNotification}
+                  onCheckedChange={handleBrowserNotificationToggle}
                 />
               </div>
             </div>
 
             {soundEnabled && (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold tracking-tight">Sound Packs & Audio Levels</h3>
                   <span className="text-xs text-muted-foreground">{sounds.length} sound(s) active</span>
@@ -217,7 +257,7 @@ export const NotificationSettings = () => {
               </div>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
