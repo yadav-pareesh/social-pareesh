@@ -13,6 +13,7 @@ import { NotificationSettings } from './components/common/NotificationSettings';
 import { notificationService } from './services/notificationService';
 import ChatHomePage from './pages/Home';
 import { ChangePasswordPage } from './components/profile/ChangePasswordCard';
+import { PublicRoute } from './PublicRoute';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
@@ -53,8 +54,11 @@ export const App = () => {
       <Router>
         <Routes>
           {/* Public Authentication Routes (No Navbar) */}
-          <Route path="/login" element={<Auth type="login" />} />
-          <Route path="/register" element={<Auth type="register" />} />
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<Auth type="login" />} />
+            <Route path="/register" element={<Auth type="register" />} />
+          </Route>
+          
 
           {/* Authenticated Application Shell (With Common Vertical Navbar) */}
           <Route

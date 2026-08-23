@@ -39,17 +39,28 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
   appName = 'Chatly',
 }: ResponsiveNavbarViewProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
- const { conversations,  activeConversationId } = useChatStore();
- const activeConversation = Array.from(conversations.values()).find(c=>c.id===activeConversationId)
+  const { conversations, activeConversationId } = useChatStore();
+  const activeConversation = Array.from(conversations.values()).find((c) => c.id === activeConversationId);
   const isInActiveChat = Boolean(activeConversation || activeConversationId);
+
+  // Prevent background scrolling when mobile menu drawer is open
+  React.useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <>
       {/* ========================================================================= */}
-      {/* 1. DESKTOP VIEW: Persistent Vertical Sidebar (sm and up)                   */}
+      {/* 1. DESKTOP VIEW: Persistent Vertical Sidebar (sm and up)                  */}
       {/* ========================================================================= */}
-      <aside className="hidden sm:flex h-screen w-16 flex-col items-center justify-between border-r border-border bg-card py-4 shrink-0 select-none">
-        {/* Top: Logo & Navigation */}
+      <aside className="hidden sm:flex h-screen w-16 flex-col items-center justify-between border-r border-border bg-card py-4 shrink-0 select-none z-40">
         <div className="flex flex-col items-center gap-6">
           <div
             title={appName}
@@ -100,7 +111,6 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
           </nav>
         </div>
 
-        {/* Bottom: Theme, Profile, Logout */}
         <div className="flex flex-col items-center gap-3">
           <button
             type="button"
@@ -111,7 +121,7 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
             {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
 
-          {user ? (
+          {user && (
             <button
               type="button"
               onClick={onProfileClick}
@@ -125,7 +135,7 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
                 className="h-8 w-8 border border-border"
               />
             </button>
-          ) : null}
+          )}
 
           <button
             type="button"
@@ -139,80 +149,76 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
       </aside>
 
       {/* ========================================================================= */}
-      {/* 2. MOBILE VIEW: Bottom Navigation Dock (< sm)                              */}
+      {/* 2. MOBILE VIEW: Bottom Navigation Dock (< sm)                             */}
       {/* ========================================================================= */}
-      
-      {!isInActiveChat && <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 flex h-14 items-center justify-around border-t border-border bg-card/95 backdrop-blur-md px-2 safe-bottom">
-        <button
-          type="button"
-          onClick={() => onTabChange?.('chats')}
-          aria-label="Chats"
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            activeTab === 'chats' ? 'text-primary font-medium' : 'text-muted-foreground'
-          }`}
-        >
-          <MessageSquare className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5">Chats</span>
-        </button>
+      {!isInActiveChat && (
+        <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-border bg-background/80 backdrop-blur-xl pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] px-2 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.1)]">
+          <button
+            type="button"
+            onClick={() => onTabChange?.('chats')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+              activeTab === 'chats' ? 'text-primary font-medium' : 'text-muted-foreground'
+            }`}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span className="text-[10px] mt-1">Chats</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onTabChange?.('contacts')}
-          aria-label="Contacts"
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            activeTab === 'contacts' ? 'text-primary font-medium' : 'text-muted-foreground'
-          }`}
-        >
-          <Users className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5">People</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => onTabChange?.('contacts')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+              activeTab === 'contacts' ? 'text-primary font-medium' : 'text-muted-foreground'
+            }`}
+          >
+            <Users className="h-5 w-5" />
+            <span className="text-[10px] mt-1">People</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={onProfileClick}
-          aria-label="Profile"
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-            activeTab === 'settings' ? 'text-primary font-medium' : 'text-muted-foreground'
-          }`}
-        >
-          {user ? (
-            <Avatar
-              user={user}
-              size="sm"
-              showOnlineIndicator={false}
-              className="h-5 w-5 border border-border"
-            />
-          ) : (
-            <UserIcon className="h-5 w-5" />
-          )}
-          <span className="text-[10px] mt-0.5">Profile</span>
-        </button>
+          <button
+            type="button"
+            onClick={onProfileClick}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+              activeTab === 'settings' ? 'text-primary font-medium' : 'text-muted-foreground'
+            }`}
+          >
+            {user ? (
+              <Avatar
+                user={user}
+                size="sm"
+                showOnlineIndicator={false}
+                className="h-5 w-5 border border-border"
+              />
+            ) : (
+              <UserIcon className="h-5 w-5" />
+            )}
+            <span className="text-[10px] mt-1">Profile</span>
+          </button>
 
-        {/* More / Menu Drawer Trigger */}
-        <button
-          type="button"
-          onClick={() => setIsMobileMenuOpen(true)}
-          aria-label="Open menu"
-          className="flex flex-col items-center justify-center flex-1 py-1 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Menu className="h-5 w-5" />
-          <span className="text-[10px] mt-0.5">Menu</span>
-        </button>
-      </nav>}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 py-1 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="text-[10px] mt-1">Menu</span>
+          </button>
+        </nav>
+      )}
 
       {/* ========================================================================= */}
-      {/* 3. MOBILE SHEET DRAWER: Quick Options & Actions                            */}
+      {/* 3. MOBILE SHEET DRAWER: Quick Options & Actions                           */}
       {/* ========================================================================= */}
       {isMobileMenuOpen && (
-        <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="sm:hidden fixed inset-0 z-[100] flex flex-col justify-end">
           {/* Backdrop dismiss */}
           <div
-            className="flex-1 w-full"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsMobileMenuOpen(false)}
           />
 
           {/* Drawer Box */}
-          <div className="w-full rounded-t-2xl border-t border-border bg-card p-5 space-y-4 shadow-2xl safe-bottom animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full rounded-t-2xl border-t border-border bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground">
@@ -251,7 +257,7 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
                   {isDarkMode ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
                   Appearance
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground font-medium">
                   {isDarkMode ? 'Dark' : 'Light'}
                 </span>
               </button>

@@ -1,5 +1,4 @@
 import type { User } from '../../types';
-import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useChatStore } from '../../stores/chatStore';
 import { Phone, Video, Info, Search, Bell, MoreVertical, Ban, ArrowLeft } from 'lucide-react';
 import { Button } from '../common/Button';
@@ -8,6 +7,7 @@ import { Avatar } from '../common/Avatar';
 import { useMemo, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '../common/DropdownMenu';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 interface ChatHeaderProps {
   user: User;
@@ -15,12 +15,11 @@ interface ChatHeaderProps {
 }
 
 export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
-  const { data: statusData } = useOnlineStatus(user.id);
+  const isOnline = useOnlineStatus(user.id);
+  
   const { setShowUserCard } = useUIStore();
-  const { setActiveConversation } = useChatStore()
-   const [isMuted, setIsMuted] = useState(false);
-
-  const isOnlineFromStore = useChatStore((state) => state.isUserOnline(user.id));
+  const { setActiveConversation } = useChatStore();
+  const [isMuted, setIsMuted] = useState(false);
 
   const typingUsers = useMemo(
     () => useChatStore.getState().getTypingUsers(conversationId),
@@ -28,9 +27,10 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   );
 
   const isTyping = typingUsers.includes(user.id);
-  const isOnline = statusData?.data?.status === 'online' || isOnlineFromStore;
-  const lastSeenText = statusData?.data?.lastSeen
-    ? formatLastSeen(statusData.data.lastSeen)
+  
+  // Fallback to the user object's lastSeen if available, otherwise 'recently'
+  const lastSeenText = user.lastSeen 
+    ? formatLastSeen(user.lastSeen) 
     : 'recently';
 
   const statusText = isTyping
@@ -49,8 +49,8 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   };
 
   const handleMuteNotifications = () => {
-     // TODO: Implement mute/unmute notification functionality
-     setIsMuted(!isMuted)
+    // TODO: Implement mute/unmute notification functionality
+    setIsMuted(!isMuted);
     console.log(isMuted ? 'Unmuted' : 'Muted', 'notifications for:', user.username);
   };
 
@@ -65,44 +65,43 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   };
 
   const handleBlock = () => {
-    // TODO: Implement the user block/unblock functinality
+    // TODO: Implement the user block/unblock functionality
     console.log('Blocked user:', user.username);
-  }
+  };
 
   return (
     <div className="flex w-full items-center justify-between h-14 p-4 border-b bg-background">
       <div className="flex items-center gap-3">
         <button
-                  type="button"
-                  onClick={() => setActiveConversation(null)}
-                  aria-label="Back to conversations"
-                  className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
-        <div onClick={()=>setShowUserCard(true)} className="flex cursor-pointer items-center gap-3">
-        <Avatar 
-          user={user} 
-          size="md" 
-          showOnlineIndicator={true} 
-        />
+          type="button"
+          onClick={() => setActiveConversation(null)}
+          aria-label="Back to conversations"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div onClick={() => setShowUserCard(true)} className="flex cursor-pointer items-center gap-3">
+          <Avatar 
+            user={user} 
+            size="md" 
+            showOnlineIndicator={true} 
+          />
 
-        <div className="min-w-0">
-          <h3 className="font-semibold truncate">{user.username}</h3>
-          <p className="text-xs text-muted-foreground">
-            {isTyping ? (
-              <span className="italic text-muted-foreground">typing...</span>
-            ) : isOnline ? (
-              <span className="text-emerald-500 font-medium">{statusText}</span>
-            ) : (
-              statusText
-            )}
-          </p>
+          <div className="min-w-0">
+            <h3 className="font-semibold truncate">{user.username}</h3>
+            <p className="text-xs text-muted-foreground">
+              {isTyping ? (
+                <span className="italic text-muted-foreground">typing...</span>
+              ) : isOnline ? (
+                <span className="text-emerald-500 font-medium">{statusText}</span>
+              ) : (
+                statusText
+              )}
+            </p>
+          </div>
         </div>
       </div>
-      </div>
       
-
       <div className="flex gap-2 align-center items-center">
         <Button onClick={handleCall} size="icon" variant="ghost" aria-label="Voice call">
           <Phone className="h-5 w-5" />
@@ -112,36 +111,36 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
         </Button>
 
         {/* Menu Button */}
-          <div>
-            <DropdownMenu trigger={<MoreVertical className="h-5 w-5" />}>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={handleViewProfile}>
-                    <div className='flex align-center items-center'>
-                        <Info className="h-4 w-4 mr-2" />
-                        <span>View Profile</span>
-                    </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSearchConversation}>
-                  <div className='flex align-center items-center'>
-                    <Search className="h-4 w-4 mr-2" />
-                    <span>Search Conversation</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleMuteNotifications}>
-                    <div className='flex align-center items-center'>
-                        <Bell className={`h-4 w-4 mr-2 ${isMuted ? 'opacity-50' : ''}`} />
-                        <span>{isMuted ? 'Unmute' : 'Mute'} Notifications</span>
-                    </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleBlock} >
-                  <div className='flex align-center items-center text-destructive'>
-                    <Ban className="h-4 w-4 mr-2" />
-                    Block
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+        <div>
+          <DropdownMenu trigger={<MoreVertical className="h-5 w-5" />}>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleViewProfile}>
+                <div className='flex align-center items-center'>
+                  <Info className="h-4 w-4 mr-2" />
+                  <span>View Profile</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSearchConversation}>
+                <div className='flex align-center items-center'>
+                  <Search className="h-4 w-4 mr-2" />
+                  <span>Search Conversation</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMuteNotifications}>
+                <div className='flex align-center items-center'>
+                  <Bell className={`h-4 w-4 mr-2 ${isMuted ? 'opacity-50' : ''}`} />
+                  <span>{isMuted ? 'Unmute' : 'Mute'} Notifications</span>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleBlock} >
+                <div className='flex align-center items-center text-destructive'>
+                  <Ban className="h-4 w-4 mr-2" />
+                  Block
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );

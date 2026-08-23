@@ -5,7 +5,8 @@ import { useTypingIndicator } from '../../hooks/useSocket';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { Send, Smile } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 const messageSchema = z.object({
   content: z.string().min(1, 'Message cannot be empty'),
@@ -19,13 +20,40 @@ interface MessageInputProps {
 }
 
 export const MessageInput = ({ onSend, conversationId }: MessageInputProps) => {
-  const { register, handleSubmit, reset, watch } = useForm<MessageFormData>({
+  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<MessageFormData>({
     resolver: zodResolver(messageSchema),
+    defaultValues: { content: '' }
   });
+  
   const { startTyping, stopTyping } = useTypingIndicator(conversationId);
-
   const content = watch('content');
   const typingTimeoutRef = useRef<any | null>(null);
+  
+  // --- Emoji Picker State & Ref ---
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  // Click-Outside Handler to close the emoji picker
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle Emoji Selection
+  const onEmojiClick = (emojiObject: any) => {
+    const currentContent = getValues('content') || '';
+    
+    // Inject the emoji into React Hook Form and trigger validation
+    setValue('content', currentContent + emojiObject.emoji, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
 
   useEffect(() => {
     if (content && content.trim().length > 0) {
@@ -47,7 +75,7 @@ export const MessageInput = ({ onSend, conversationId }: MessageInputProps) => {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [content, conversationId]);
+  }, [content, conversationId, startTyping, stopTyping]);
 
   const onSubmit = (data: MessageFormData) => {
     stopTyping();
@@ -56,6 +84,7 @@ export const MessageInput = ({ onSend, conversationId }: MessageInputProps) => {
     }
     onSend(data.content);
     reset();
+    setShowEmojiPicker(false); // Close picker on send
   };
 
   return (
@@ -65,16 +94,33 @@ export const MessageInput = ({ onSend, conversationId }: MessageInputProps) => {
         autoFocus={true}
         placeholder="Type a message..."
         className="flex-1 bg-background"
+        autoComplete="off"
       />
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className="text-muted-foreground hover:text-foreground"
-      >
-        <Smile className="h-5 w-5" />
-      </Button>
-      <Button type="submit" size="icon">
+      
+      {/* Emoji Picker Wrapper */}
+      <div className="relative" ref={emojiPickerRef}>
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-0 mb-4 z-50 shadow-xl rounded-lg animate-in fade-in slide-in-from-bottom-2">
+            <EmojiPicker 
+              onEmojiClick={onEmojiClick} 
+              theme={Theme.AUTO} // Automatically matches user's system dark/light mode
+              lazyLoadEmojis={true}
+              searchPlaceHolder="Search emojis..."
+            />
+          </div>
+        )}
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => setShowEmojiPicker((prev) => !prev)}
+          className={`text-muted-foreground hover:text-foreground transition-colors ${showEmojiPicker ? 'bg-accent text-accent-foreground' : ''}`}
+        >
+          <Smile className="h-5 w-5" />
+        </Button>
+      </div>
+
+      <Button type="submit" size="icon" disabled={!content?.trim()}>
         <Send className="h-5 w-5" />
       </Button>
     </form>

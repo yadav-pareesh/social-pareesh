@@ -34,16 +34,17 @@ export const UserProfileCard = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   
-  const { data: statusData } = useOnlineStatus(user.id);
+  // 1. PERFECTLY TYPED: Just directly assign the boolean from our new hook!
+  const isOnline = useOnlineStatus(user.id);
+  
   const { data: friendshipStatus } = useQuery({
     queryKey: ['friendship', user.id],
     queryFn: () => friendsAPI.getFriends(),
   });
   
-  const isOnline = statusData?.data?.status === 'online';
-  const isAway = statusData?.data?.status === 'away';
-  const lastSeen = statusData?.data?.lastSeen
-    ? formatRelativeTime(new Date(statusData.data.lastSeen))
+  // 2. Map lastSeen directly from the user object
+  const lastSeen = user.lastSeen
+    ? formatRelativeTime(new Date(user.lastSeen))
     : 'Never';
 
   const memberSince = formatDate(new Date(user.createdAt));
@@ -123,11 +124,7 @@ export const UserProfileCard = ({
                 />
                 <div
                   className={`absolute bottom-0 right-0 w-5 h-5 rounded-full border-3 border-card ${
-                    isOnline
-                      ? 'bg-green-500'
-                      : isAway
-                      ? 'bg-yellow-500'
-                      : 'bg-gray-500'
+                    isOnline ? 'bg-green-500' : 'bg-gray-500'
                   }`}
                 />
               </div>

@@ -4,10 +4,13 @@ import { persist } from 'zustand/middleware';
 interface NotificationStore {
   isEnabled: boolean;
   soundEnabled: boolean;
+  inChatSoundEnabled: boolean;
   vibrateEnabled: boolean;
   browserNotificationEnabled: boolean;
+  
   toggleNotifications: () => void;
   toggleSound: () => void;
+  toggleInChatSound: () => void;
   toggleVibrate: () => void;
   toggleBrowserNotification: () => void;
   setNotifications: (enabled: boolean) => void;
@@ -18,6 +21,7 @@ export const useNotificationStore = create<NotificationStore>()(
     (set) => ({
       isEnabled: true,
       soundEnabled: true,
+      inChatSoundEnabled: true, // Default to true
       vibrateEnabled: true,
       browserNotificationEnabled: true,
 
@@ -26,6 +30,9 @@ export const useNotificationStore = create<NotificationStore>()(
 
       toggleSound: () =>
         set((state) => ({ soundEnabled: !state.soundEnabled })),
+
+      toggleInChatSound: () =>
+        set((state) => ({ inChatSoundEnabled: !state.inChatSoundEnabled })),
 
       toggleVibrate: () =>
         set((state) => ({ vibrateEnabled: !state.vibrateEnabled })),

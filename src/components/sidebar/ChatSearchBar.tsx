@@ -28,7 +28,8 @@ export const ChatSearchBar = React.memo(function ChatSearchBar({
 
   React.useEffect(() => {
     if (isOpen) {
-      inputRef.current?.focus();
+      // Small timeout ensures the transition completes before focusing
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
@@ -42,7 +43,6 @@ export const ChatSearchBar = React.memo(function ChatSearchBar({
   if (!isOpen) {
     return (
       <div className={`flex items-center justify-between gap-3 w-full ${className}`}>
-        {/* Custom title / header message when collapsed */}
         <div className="flex-1 min-w-0">
           {typeof title === 'string' ? (
             <h2 className="text-base font-semibold text-foreground truncate">{title}</h2>
@@ -51,7 +51,6 @@ export const ChatSearchBar = React.memo(function ChatSearchBar({
           )}
         </div>
 
-        {/* Trigger Button */}
         <button
           type="button"
           onClick={onOpen}
@@ -66,13 +65,10 @@ export const ChatSearchBar = React.memo(function ChatSearchBar({
 
   return (
     <div className={`relative flex items-center w-full ${className}`}>
-      {/* Search Icon */}
       <Search
         aria-hidden="true"
         className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none transition-colors"
       />
-
-      {/* Input Field */}
       <input
         ref={inputRef}
         type="text"
@@ -84,8 +80,6 @@ export const ChatSearchBar = React.memo(function ChatSearchBar({
         className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 py-1.5 text-sm ring-offset-background placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-sm"
         {...props}
       />
-
-      {/* Clear / Close Button */}
       <button
         type="button"
         onClick={onClear}
