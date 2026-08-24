@@ -20,7 +20,8 @@ export const ChatWindow = ({ conversation, currentUser }: ChatWindowProps) => {
   const { isLoading } = useConversationMessages(conversation.id);
   
   // 2. Reactive subscription to live messages in store
-  const storeMessages = useChatStore((state) => state.messages.get(conversation.id) || []);
+  const chatStoreMessages = useChatStore((state) => state.messages.get(conversation.id));
+  const storeMessages = chatStoreMessages || [];
   
   const sendMessage = useSendMessage();
   const { showUserCard } = useUIStore();
