@@ -14,6 +14,7 @@ import { notificationService } from './services/notificationService';
 import ChatHomePage from './pages/Home';
 import { ChangePasswordPage } from './components/profile/ChangePasswordCard';
 import { PublicRoute } from './PublicRoute';
+import { CallOverlay } from './components/chat/CallOverlay';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
@@ -52,6 +53,7 @@ export const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
+        <CallOverlay />
         <Routes>
           {/* Public Authentication Routes (No Navbar) */}
           <Route element={<PublicRoute />}>

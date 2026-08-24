@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { useUIStore } from '../../stores/uiStore';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '../common/DropdownMenu';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useWebRTC } from '@/hooks/useWebRTC'; // 1. Import the WebRTC hook
 
 interface ChatHeaderProps {
   user: User;
@@ -16,6 +17,7 @@ interface ChatHeaderProps {
 
 export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   const isOnline = useOnlineStatus(user.id);
+  const { initiateCall } = useWebRTC(); // 2. Extract the calling function
   
   const { setShowUserCard } = useUIStore();
   const { setActiveConversation } = useChatStore();
@@ -28,7 +30,6 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
 
   const isTyping = typingUsers.includes(user.id);
   
-  // Fallback to the user object's lastSeen if available, otherwise 'recently'
   const lastSeenText = user.lastSeen 
     ? formatLastSeen(user.lastSeen) 
     : 'recently';
@@ -49,23 +50,31 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   };
 
   const handleMuteNotifications = () => {
-    // TODO: Implement mute/unmute notification functionality
     setIsMuted(!isMuted);
-    console.log(isMuted ? 'Unmuted' : 'Muted', 'notifications for:', user.username);
   };
 
-  const handleCall = () => {
-    console.log('Call initiated with', user.username);
-    // TODO: Implement call functionality
+  // 3. Wire up the Voice Call Button
+  const handleCall = async () => {
+    try {
+      // initiateCall(targetUserId, withVideo)
+      await initiateCall(user.id, false);
+    } catch (error) {
+      console.error('Failed to start voice call:', error);
+      alert('Could not access microphone. Please check your browser permissions.');
+    }
   };
   
-  const handleVideoCall = () => {
-    console.log('Video call initiated with', user.username);
-    // TODO: Implement video call functionality
+  // 4. Wire up the Video Call Button
+  const handleVideoCall = async () => {
+    try {
+      await initiateCall(user.id, true);
+    } catch (error) {
+      console.error('Failed to start video call:', error);
+      alert('Could not access camera/microphone. Please check your browser permissions.');
+    }
   };
 
   const handleBlock = () => {
-    // TODO: Implement the user block/unblock functionality
     console.log('Blocked user:', user.username);
   };
 
@@ -103,10 +112,22 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
       </div>
       
       <div className="flex gap-2 align-center items-center">
-        <Button onClick={handleCall} size="icon" variant="ghost" aria-label="Voice call">
+        <Button 
+          onClick={handleCall} 
+          size="icon" 
+          variant="ghost" 
+          aria-label="Voice call"
+          disabled={!isOnline} // Optional: Prevent calling offline users
+        >
           <Phone className="h-5 w-5" />
         </Button>
-        <Button onClick={handleVideoCall} size="icon" variant="ghost" aria-label="Video call">
+        <Button 
+          onClick={handleVideoCall} 
+          size="icon" 
+          variant="ghost" 
+          aria-label="Video call"
+          disabled={!isOnline} // Optional: Prevent calling offline users
+        >
           <Video className="h-5 w-5" />
         </Button>
 
