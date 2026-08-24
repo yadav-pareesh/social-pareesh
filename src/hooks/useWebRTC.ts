@@ -148,6 +148,11 @@ export const useWebRTC = () => {
       handleHangUp(false); // false means don't emit back, they already ended it
     });
 
+    socket.on('call:error', (data: { message: string }) => {
+      alert(`Call failed: ${data.message}`);
+      handleHangUp(false);
+    });
+
     return () => {
       socket.off('call:incoming');
       socket.off('call:accepted');
@@ -155,6 +160,7 @@ export const useWebRTC = () => {
       socket.off('webrtc:answer');
       socket.off('webrtc:ice-candidate');
       socket.off('call:ended');
+      socket.off('call:error');
     };
   }, [socket, targetUserId, callerId, withVideo]);
 

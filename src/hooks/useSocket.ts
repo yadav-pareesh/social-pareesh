@@ -21,17 +21,20 @@ export const useSocket = () => {
     const handleConnect = async () => {
       socket.emit('user:login', { userId: user.id });
 
-      // CRITICAL FIX: Join ALL conversation rooms immediately upon login.
-      // If we don't do this, users on the ChatList screen won't receive ANY real-time events.
+      // Join ALL conversation rooms immediately upon login.
       const conversations = useChatStore.getState().conversations;
+      
       conversations.forEach((conv) => {
         socket.emit('conversation:join', { conversationId: conv.id });
       });
 
       // Still handle the active one specifically just in case
       const currentActiveId = useChatStore.getState().activeConversationId;
-      if (currentActiveId && !conversations.has(currentActiveId)) {
-        socket.emit('conversation:join', { conversationId: currentActiveId });
+      if (currentActiveId) {
+        // TypeScript knows this is a Map, so we can safely use .has()
+        if (!conversations.has(currentActiveId)) {
+          socket.emit('conversation:join', { conversationId: currentActiveId });
+        }
       }
 
       try {
@@ -70,7 +73,7 @@ export const useSocket = () => {
 
         const withoutTemp = old.filter((m) => m !== tempMsg);
         
-        // CRITICAL FIX: Inherit readBy from the temp message to survive race conditions!
+        // Inherit readBy from the temp message to survive race conditions
         const mergedMessage = {
            ...message,
            readBy: tempMsg 
@@ -99,12 +102,11 @@ export const useSocket = () => {
           notificationService.playSound('message');
           notificationService.vibrate();
           
-          // Get the sender's details synchronously from Zustand (No React Query overhead!)
+          // Get the sender's details synchronously from Zustand
           const conversation = useChatStore.getState().conversations.get(message.conversationId);
           const otherUser = conversation?.user1Id === user.id ? conversation?.user2 : conversation?.user1;
           const senderName = otherUser?.username || 'someone';
           
-          // Show desktop toast with actual sender name and profile pic
           notificationService.notify(
             `New message from ${senderName}`, 
             message.content,
@@ -144,19 +146,16 @@ export const useSocket = () => {
       userId: string;
     }) => {
       
-      // 1. Update Zustand
       if (data.messageId) {
         useChatStore.getState().markMessageAsRead(data.conversationId, data.messageId, data.userId);
       } else {
         useChatStore.getState().markConversationAsRead(data.conversationId, data.userId);
       }
 
-      // 2. Update React Query Messages Cache (With Watermark Logic)
       queryClient.setQueryData(['messages', data.conversationId], (old: Message[] | undefined) => {
         if (!old) return old;
 
-        // Find the watermark time limit
-        let targetTime = Infinity; // If no messageId, assume joining chat (mark all read)
+        let targetTime = Infinity; 
         if (data.messageId) {
           const targetMsg = old.find((m) => m.id === data.messageId);
           if (targetMsg) {
@@ -166,8 +165,6 @@ export const useSocket = () => {
 
         return old.map((msg) => {
           const msgTime = new Date(msg.createdAt).getTime();
-          
-          // Apply read receipt to this message AND all older messages
           if (msgTime <= targetTime) {
             return {
               ...msg,
@@ -178,7 +175,6 @@ export const useSocket = () => {
         });
       });
 
-      // 3. Clear Unread Badges in Conversation List
       queryClient.setQueryData(['conversations'], (oldConvs: Conversation[] | undefined) => {
         if (!oldConvs) return oldConvs;
         return oldConvs.map((c) => (c.id === data.conversationId ? { ...c, unreadCount: 0 } : c));
@@ -194,11 +190,8 @@ export const useSocket = () => {
 
     // 4. EDIT MESSAGE HANDLER
     const handleMessageEdit = (updatedMessage: Message) => {
-      console.log('📥 SOCKET RECEIVED EDIT:', updatedMessage);
-      if (!updatedMessage.conversationId) {
-        console.error('❌ ERROR: Backend returned edited message without a conversationId!', updatedMessage);
-        return; 
-      }
+      if (!updatedMessage.conversationId) return; 
+      
       useChatStore.getState().editMessage(
         updatedMessage.conversationId, 
         updatedMessage.id, 
@@ -350,7 +343,7 @@ export const useSendMessage = () => {
     });
 
     try {
-      if (!socket.connected) await new Promise<void>((resolve) => socket.once('connect', () => resolve()));
+      // FIX: Rely on Socket.io's native offline buffering. Waiting for a Promise here freezes the UI if offline!
       socket.emit('message:send', { conversationId, senderId: user.id, content, parentMessageId });
     } catch (error) {
       console.error('Failed to send message via socket:', error);
@@ -361,7 +354,6 @@ export const useSendMessage = () => {
   };
 };
 
-// NEW: Socket Hook for Editing Messages
 export const useEditSocketMessage = () => {
   const socket = getSocket();
   const { user } = useAuthStore();
@@ -370,7 +362,6 @@ export const useEditSocketMessage = () => {
   return (conversationId: string, messageId: string, content: string) => {
     if (!user?.id || !content.trim()) return;
 
-    // Optimistically update UI instantly
     useChatStore.getState().editMessage(conversationId, messageId, content);
 
     queryClient.setQueryData(['messages', conversationId], (old: Message[] | undefined) => {
@@ -378,17 +369,15 @@ export const useEditSocketMessage = () => {
       return old.map(m => m.id === messageId ? { ...m, content, editedAt: new Date() } : m);
     });
 
-    // Emit the event to the backend so the other user receives it
     socket.emit('message:edit', {
       messageId,
       senderId: user.id,
       content,
-      conversationId // Critical for backend io.to().emit()
+      conversationId 
     });
   };
 };
 
-// NEW: Socket Hook for Deleting Messages
 export const useDeleteSocketMessage = () => {
   const socket = getSocket();
   const { user } = useAuthStore();
@@ -397,7 +386,6 @@ export const useDeleteSocketMessage = () => {
   return (conversationId: string, messageId: string) => {
     if (!user?.id) return;
 
-    // Optimistically remove from UI instantly
     useChatStore.getState().deleteMessage(conversationId, messageId);
 
     queryClient.setQueryData(['messages', conversationId], (old: Message[] | undefined) => {
@@ -422,14 +410,14 @@ export const useTypingIndicator = (conversationId: string) => {
 
   const startTyping = () => {
     if (!user?.id || !conversationId) return;
+    // FIX: Only emit typing:start to the server. The backend will broadcast the indicator.
     socket.emit('typing:start', { conversationId, userId: user.id });
-    socket.emit('typing:indicator', { conversationId, userId: user.id, isTyping: true });
   };
 
   const stopTyping = () => {
     if (!user?.id || !conversationId) return;
+    // FIX: Only emit typing:stop to the server.
     socket.emit('typing:stop', { conversationId, userId: user.id });
-    socket.emit('typing:indicator', { conversationId, userId: user.id, isTyping: false });
   };
 
   return { startTyping, stopTyping };
