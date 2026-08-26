@@ -316,8 +316,16 @@ export const useSendMessage = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
-  return async (conversationId: string, content: string, parentMessageId?: string) => {
-    if (!user?.id || !content.trim()) return;
+  return async (
+    conversationId: string, 
+    content: string, 
+    parentMessageId?: string, 
+    attachmentUrl?: string, 
+    attachmentType?: 'image' | 'video'
+  ) => {
+
+    const safeContent = content?.trim() || "";
+    if (!user?.id || (!safeContent && !attachmentUrl)) return;
 
     const now = new Date();
     const tempMessage: Message = {
@@ -328,6 +336,8 @@ export const useSendMessage = () => {
       createdAt: now,
       readBy: [user.id],
       parentMessageId,
+      attachmentUrl,
+      attachmentType,
     };
 
     useChatStore.getState().addMessage(conversationId, tempMessage);
@@ -343,8 +353,14 @@ export const useSendMessage = () => {
     });
 
     try {
-      // FIX: Rely on Socket.io's native offline buffering. Waiting for a Promise here freezes the UI if offline!
-      socket.emit('message:send', { conversationId, senderId: user.id, content, parentMessageId });
+      socket.emit('message:send', { 
+        conversationId, 
+        senderId: user.id, 
+        content: safeContent, 
+        parentMessageId,
+        attachmentUrl,
+        attachmentType
+      });
     } catch (error) {
       console.error('Failed to send message via socket:', error);
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });

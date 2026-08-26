@@ -16,23 +16,21 @@ interface ChatWindowProps {
 export const ChatWindow = ({ conversation, currentUser }: ChatWindowProps) => {
   const otherUser = conversation.user1Id === currentUser.id ? conversation.user2 : conversation.user1;
   
-  // 1. Initial query fetch from server
   const { isLoading } = useConversationMessages(conversation.id);
   
-  // 2. Reactive subscription to live messages in store
   const chatStoreMessages = useChatStore((state) => state.messages.get(conversation.id));
   const storeMessages = chatStoreMessages || [];
   
   const sendMessage = useSendMessage();
   const { showUserCard } = useUIStore();
 
-  const handleSendMessage = (content: string) => {
-    sendMessage(conversation.id, content);
+  const handleSendMessage = (content: string, attachmentUrl?: string, attachmentType?: 'image' | 'video') => {
+    // CRITICAL FIX: Added 'undefined' for parentMessageId so the arguments align perfectly with your hook!
+    sendMessage(conversation.id, content, undefined, attachmentUrl, attachmentType);
   };
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <ChatHeader user={otherUser} conversationId={conversation.id} />
         <MessageList
@@ -44,7 +42,6 @@ export const ChatWindow = ({ conversation, currentUser }: ChatWindowProps) => {
         <MessageInput onSend={handleSendMessage} conversationId={conversation.id} />
       </div>
 
-      {/* User Profile Card Drawer */}
       {showUserCard && otherUser && (
         <UserProfileCard user={otherUser} />
       )}

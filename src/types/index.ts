@@ -27,6 +27,8 @@ export interface Message {
   deletedAt?: Date;
   readBy: string[];
   parentMessageId?: string; // For replies
+  attachmentUrl?: string;
+  attachmentType?: 'image' | 'video';
 }
 
 export interface MessageReply {
