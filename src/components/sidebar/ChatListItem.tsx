@@ -122,25 +122,7 @@ export const ChatListItem = ({
             <h4 className="font-semibold text-sm truncate pr-2 text-foreground">
               {otherUser.username}
             </h4>
-            {timeString && (
-              <span className={cn(
-                "text-[11px] whitespace-nowrap flex-shrink-0",
-                hasUnread ? "text-primary font-medium" : "text-muted-foreground"
-              )}>
-                {timeString}
-              </span>
-            )}
-          </div>
-
-          {/* Bottom Row: Message & Actions */}
-          <div className="flex items-center justify-between gap-2">
-            <p className={cn(
-              "text-[13px] truncate flex-1",
-              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
-            )}>
-              {lastMessage}
-            </p>
-
+            
             {/* Actions Wrapper - onClick stops event bubbling to the parent div */}
             <div 
               className="flex items-center gap-1 flex-shrink-0"
@@ -174,6 +156,25 @@ export const ChatListItem = ({
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+          </div>
+
+          {/* Bottom Row: Message & Actions */}
+          <div className="flex items-center justify-between gap-2">
+            <p className={cn(
+              "text-[13px] truncate flex-1",
+              hasUnread ? "text-foreground font-medium" : "text-muted-foreground"
+            )}>
+              {lastMessage}
+            </p>
+
+            {timeString && (
+              <span className={cn(
+                "text-[11px] whitespace-nowrap flex-shrink-0",
+                hasUnread ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                {timeString}
+              </span>
+            )}
           </div>
 
         </div>

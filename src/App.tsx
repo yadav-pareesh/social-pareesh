@@ -15,6 +15,8 @@ import ChatHomePage from './pages/Home';
 import { ChangePasswordPage } from './components/profile/ChangePasswordCard';
 import { PublicRoute } from './PublicRoute';
 import { CallOverlay } from './components/chat/CallOverlay';
+import { CallHistory } from './pages/CallHistory';
+import { Friends } from './pages/Friends';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
@@ -75,6 +77,8 @@ export const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/notification" element={<NotificationSettings />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/call-history" element={<CallHistory />} />
+            <Route path="/friends" element={<Friends />} />
             <Route index element={<Navigate to="/home" replace />} />
           </Route>
 

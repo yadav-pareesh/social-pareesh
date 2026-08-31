@@ -26,10 +26,10 @@ export const Navbar = () => {
   const handleTabChange = React.useCallback(
     (tab: NavTab) => {
       setActiveTab(tab);
-      if (tab === 'settings') {
-        navigate('/settings');
-      } else if (tab === 'contacts') {
-        navigate('/contacts');
+      if (tab === 'friends') {
+        navigate('/friends');
+      } else if (tab === 'call-history') {
+        navigate('/call-history');
       } else {
         navigate('/');
       }

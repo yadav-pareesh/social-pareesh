@@ -71,3 +71,18 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
 }
+
+export interface CallRecord {
+  id: string;
+  callerId: string;
+  receiverId: string;
+  type: 'audio' | 'video';
+  status: 'missed' | 'completed' | 'rejected' | 'ongoing' | 'in_progress';
+  startedAt: string; // ISO date string when serialized from JSON
+  duration: number;  // Call length in seconds (0 for missed/rejected)
+  otherUser: {
+    id: string;
+    username: string;
+    profilePicUrl: string | null;
+  };
+}

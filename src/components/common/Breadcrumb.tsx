@@ -18,7 +18,6 @@ interface BreadcrumbProps {
 const ROUTE_LABELS: Record<string, string> = {
   '/chat': 'Home',
   '/profile': 'Profile',
-  '/settings': 'Settings',
   '/friends': 'Friends',
   '/search': 'Search',
 };
