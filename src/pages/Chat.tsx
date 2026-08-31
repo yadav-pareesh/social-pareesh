@@ -2,6 +2,7 @@ import { useChatStore } from '../stores/chatStore';
 import { Sidebar } from '@/components/sidebar/Sidebar';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { useAuthStore } from '@/stores/authStore';
+import { EmptyChatState } from '@/components/chat/EmptyChatState';
 
 export const Chat = () => {
   const {user} = useAuthStore();
@@ -26,9 +27,7 @@ export const Chat = () => {
             user && <ChatWindow conversation={activeConversation} currentUser={user} />
         ) : (
           /* Empty state on desktop when no conversation is selected */
-          <div className="hidden lg:flex flex-1 flex-col items-center justify-center text-center p-6 text-muted-foreground">
-            <p className="text-sm font-medium">Select a conversation to start chatting</p>
-          </div>
+          <EmptyChatState />
         )}
       </section>
     </div>

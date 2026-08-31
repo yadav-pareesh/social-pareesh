@@ -38,13 +38,18 @@ export const ChatList = () => {
     );
   }
 
-  if (!conversations || conversations.length === 0) {
+ if (!conversations || conversations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center text-muted-foreground space-y-3">
-        <div className="bg-muted p-3 rounded-full">
-          <MessageSquareOff className="h-6 w-6 opacity-70" />
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center space-y-4">
+        <div className="bg-primary/5 p-4 rounded-full ring-1 ring-primary/10">
+          <MessageSquareOff className="h-7 w-7 text-primary/60" />
         </div>
-        <p className="text-sm">No conversations yet.</p>
+        <div className="space-y-1">
+          <h3 className="font-medium text-foreground">No chats yet</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-[200px] mx-auto">
+            Use the search bar above to find users and start a conversation.
+          </p>
+        </div>
       </div>
     );
   }

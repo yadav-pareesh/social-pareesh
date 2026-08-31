@@ -133,7 +133,7 @@ export const AuthenticatedUserProfile = ({ onNavigate }: AuthenticatedUserProfil
 
   return (
     <div className="flex flex-1 h-full w-full overflow-y-auto bg-background text-foreground">
-      <div className="mx-auto w-full max-w-4xl p-6 sm:p-10 space-y-8">
+      <div className="mx-auto w-full max-w-3xl p-6 sm:p-10 space-y-8">
         <div className="flex items-center gap-4">
           <button
             type="button"

@@ -5,17 +5,18 @@ import {
   Sun,
   Moon,
   LogOut,
-  Settings,
   User as UserIcon,
   Bell,
   X,
   Menu,
+  History,
+  Phone,
 } from 'lucide-react';
 import type { User } from '../../types';
 import { Avatar } from '../common/Avatar';
 import { useChatStore } from '@/stores/chatStore';
 
-export type NavTab = 'chats' | 'contacts' | 'settings' | 'notifications';
+export type NavTab = 'chats' | 'friends' | 'profile' | 'notifications' | 'call-history';
 
 export interface ResponsiveNavbarViewProps {
   user: User | null;
@@ -85,10 +86,10 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
 
             <button
               type="button"
-              onClick={() => onTabChange?.('contacts')}
-              aria-label="Contacts"
+              onClick={() => onTabChange?.('friends')}
+              aria-label="Friends"
               className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                activeTab === 'contacts'
+                activeTab === 'friends'
                   ? 'bg-accent text-accent-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
@@ -98,15 +99,15 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
 
             <button
               type="button"
-              onClick={() => onTabChange?.('settings')}
-              aria-label="Settings"
+              onClick={() => onTabChange?.('call-history')}
+              aria-label="Call History"
               className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                activeTab === 'settings'
+                activeTab === 'call-history'
                   ? 'bg-accent text-accent-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               }`}
             >
-              <Settings className="h-5 w-5" />
+              <Phone className="h-5 w-5" />
             </button>
           </nav>
         </div>
@@ -166,9 +167,9 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
 
           <button
             type="button"
-            onClick={() => onTabChange?.('contacts')}
+            onClick={() => onTabChange?.('friends')}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-              activeTab === 'contacts' ? 'text-primary font-medium' : 'text-muted-foreground'
+              activeTab === 'friends' ? 'text-primary font-medium' : 'text-muted-foreground'
             }`}
           >
             <Users className="h-5 w-5" />
@@ -177,9 +178,20 @@ export const ResponsiveNavbarView = React.memo(function ResponsiveNavbarView({
 
           <button
             type="button"
+            onClick={() => onTabChange?.('call-history')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+              activeTab === 'call-history' ? 'text-primary font-medium' : 'text-muted-foreground'
+            }`}
+          >
+            <Phone className="h-5 w-5" />
+            <span className="text-[10px] mt-1">Call History</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onProfileClick}
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
-              activeTab === 'settings' ? 'text-primary font-medium' : 'text-muted-foreground'
+              activeTab === 'profile' ? 'text-primary font-medium' : 'text-muted-foreground'
             }`}
           >
             {user ? (
