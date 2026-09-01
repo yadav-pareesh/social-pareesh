@@ -29,9 +29,9 @@ export const DropdownMenu = ({ trigger, children, align }: DropdownMenuProps) =>
 
   return (
     <div ref={ref} className="relative inline-block">
-      <button onClick={() => setOpen(!open)} className='cursor-pointer'>
+      <div onClick={() => setOpen(!open)} className='cursor-pointer'>
         {trigger ? trigger :<div className="ali"><MoreVertical className="h-5 w-5" /></div> }
-      </button>
+      </div>
       {open && (
         <div
           role="menu"

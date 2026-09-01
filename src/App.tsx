@@ -17,6 +17,8 @@ import { PublicRoute } from './PublicRoute';
 import { CallOverlay } from './components/chat/CallOverlay';
 import { CallHistory } from './pages/CallHistory';
 import { Friends } from './pages/Friends';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
@@ -61,9 +63,11 @@ export const App = () => {
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Auth type="login" />} />
             <Route path="/register" element={<Auth type="register" />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
           </Route>
           
-
           {/* Authenticated Application Shell (With Common Vertical Navbar) */}
           <Route
             element={

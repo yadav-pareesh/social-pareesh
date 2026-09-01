@@ -10,6 +10,10 @@ export const authAPI = {
     return apiClient.post('/auth/register', data);
   },
 
+  verifyRegistration: async (email: string, otp: string): Promise<ApiResponse<AuthResponse>> => {
+    return apiClient.post('/auth/verify-registration', { email, otp });
+  },
+
   login: async (data: {
     email: string;
     password: string;
@@ -23,6 +27,18 @@ export const authAPI = {
 
   refresh: async (): Promise<ApiResponse<AuthResponse>> => {
     return apiClient.post('/auth/refresh');
+  },
+
+  forgotPassword: async (email: string): Promise<ApiResponse<void>> => {
+    return apiClient.post('/auth/forgot-password', { email });
+  },
+
+  resetPassword: async (data: {
+    email: string;
+    otp: string;
+    password: string;
+  }): Promise<ApiResponse<void>> => {
+    return apiClient.patch('/auth/reset-password', data);
   },
 
   getCurrentUser: async (): Promise<ApiResponse<User>> => {

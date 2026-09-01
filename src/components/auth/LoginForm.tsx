@@ -110,6 +110,11 @@ export const LoginForm = () => {
           Register
         </Link>
       </p>
+      <p className="text-center text-sm text-muted-foreground mt-6">
+        <Link to="/forgot-password" className="text-primary hover:underline font-medium">
+          Forgot Password
+        </Link>
+      </p>
     </div>
   );
 };
