@@ -26,5 +26,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "src/components/ui"]
+  "include": ["src", "src/components/ui"],
+  "exclude": ["src/test"]
 }

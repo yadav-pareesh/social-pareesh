@@ -34,8 +34,7 @@ export const useLogin = () => {
 };
 
 export const useRegister = () => {
-  const navigate = useNavigate();
-  const { setUser, setToken, setRefreshToken, setError, setLoading } = useAuthStore();
+  const { setError, setLoading } = useAuthStore();
 
   return useMutation({
     mutationFn: authAPI.register,
@@ -44,13 +43,7 @@ export const useRegister = () => {
       setError(null);
     },
     onSuccess: (response) => {
-      if (response.success && response.data) {
-        setToken(response.data.token);
-        setRefreshToken(response.data.refreshToken ?? null);
-        setUser(response.data.user);
-        setError(null);
-        navigate('/chat');
-      } else {
+      if (!response.success) {
         setError(response.error ?? 'Registration failed');
       }
     },
