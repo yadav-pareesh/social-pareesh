@@ -14,6 +14,10 @@ export const authAPI = {
     return apiClient.post('/auth/verify-registration', { email, otp });
   },
 
+  resendVerification: async (email: string): Promise<ApiResponse<void>> => {
+    return apiClient.post('/auth/resend-verification', { email });
+  },
+
   login: async (data: {
     email: string;
     password: string;

@@ -20,12 +20,17 @@ export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   
   const { 
-    register, 
+    register,
+    watch,
     handleSubmit, 
     formState: { errors } 
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
+
+  const enteredEmail = watch('email');
+  const loginErrorMessage = loginMutation.error?.message || 'An error occurred during login.';
+  const requiresEmailVerification = loginErrorMessage.toLowerCase().includes('verify your email');
 
   const onSubmit = (data: LoginFormData) => {
     loginMutation.mutate(data);
@@ -42,7 +47,15 @@ export const LoginForm = () => {
           role="alert"
           aria-live="polite"
         >
-          {loginMutation.error?.message || 'An error occurred during login.'}
+          {loginErrorMessage}
+          {requiresEmailVerification && enteredEmail && (
+            <Link
+              to={`/verify-email?email=${encodeURIComponent(enteredEmail.trim().toLowerCase())}`}
+              className="block mt-2 font-medium underline underline-offset-2"
+            >
+              Verify email or resend code
+            </Link>
+          )}
         </div>
       )}
 

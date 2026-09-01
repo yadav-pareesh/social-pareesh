@@ -19,6 +19,7 @@ import { CallHistory } from './pages/CallHistory';
 import { Friends } from './pages/Friends';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { VerifyEmail } from './pages/VerifyEmail';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
@@ -66,6 +67,7 @@ export const App = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
           </Route>
           
           {/* Authenticated Application Shell (With Common Vertical Navbar) */}

@@ -13,7 +13,13 @@ import { useAuthStore } from '../../stores/authStore';
 const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username is too long'),
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(50, 'Password is too long'),
+  password: z.string()
+    .min(6, 'Password must be at least 6 characters')
+    .max(50, 'Password is too long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[!@#$%^&*()_+\-=[\]{};\':"\\|,.<>/?]/, 'Password must contain at least one special character'),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -37,8 +43,8 @@ export const RegisterForm = () => {
   const onSubmit = (data: RegisterFormData) => {
     registerMutation.mutate(data, {
       onSuccess: () => {
-        setRegisteredEmail(data.email);
-        setStep('verify');
+        setRegisteredEmail(data.email.trim().toLowerCase());
+        navigate(`/verify-email?email=${encodeURIComponent(data.email.trim().toLowerCase())}`);
       }
     });
   };
@@ -143,7 +149,7 @@ export const RegisterForm = () => {
           <label htmlFor="password" className="text-sm font-medium mb-1.5 block">Password</label>
           <div className="relative">
             <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" disabled={registerMutation.isPending} {...register('password')} className="pr-10" />
-            <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={registerMutation.isPending} className="absolute right-3 top-2.5 text-muted-foreground">
+              <button type="button" onClick={() => setShowPassword(!showPassword)} disabled={registerMutation.isPending} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 top-2.5 text-muted-foreground">
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>

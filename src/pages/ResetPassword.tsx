@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, Loader2, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Lock, Loader2, CheckCircle2, AlertCircle, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { authAPI } from '@/services/api/auth';
 
 type FormStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -15,6 +15,8 @@ export const ResetPassword = () => {
   const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [status, setStatus] = useState<FormStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -34,6 +36,18 @@ export const ResetPassword = () => {
     if (trimmedOtp.length !== 6) {
       setStatus('error');
       setErrorMessage('Verification code must be 6 digits');
+      return;
+    }
+
+    if (trimmedPassword.length < 6) {
+      setStatus('error');
+      setErrorMessage('Password must be at least 6 characters');
+      return;
+    }
+
+    if (!/[A-Z]/.test(trimmedPassword) || !/[a-z]/.test(trimmedPassword) || !/[0-9]/.test(trimmedPassword) || !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(trimmedPassword)) {
+      setStatus('error');
+      setErrorMessage('Password must contain uppercase, lowercase, number, and special character');
       return;
     }
 
@@ -125,14 +139,17 @@ export const ResetPassword = () => {
                     <Lock className="absolute left-3 h-4 w-4 text-muted-foreground" />
                     <input
                       id="newPassword"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       minLength={6}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={status === 'loading'}
-                      className="w-full rounded-xl border border-input bg-background pl-10 pr-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      className="w-full rounded-xl border border-input bg-background pl-10 pr-10 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                     />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute right-3 text-muted-foreground">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -142,14 +159,17 @@ export const ResetPassword = () => {
                     <Lock className="absolute left-3 h-4 w-4 text-muted-foreground" />
                     <input
                       id="confirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       required
                       minLength={6}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={status === 'loading'}
-                      className="w-full rounded-xl border border-input bg-background pl-10 pr-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      className="w-full rounded-xl border border-input bg-background pl-10 pr-10 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
                     />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'} className="absolute right-3 text-muted-foreground">
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
               </div>
