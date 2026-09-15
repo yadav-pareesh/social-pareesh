@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Message, Conversation, User } from '../types';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { notificationService } from '@/services/notificationService';
+import { useFriendStore } from '@/stores/friendStore';
 
 export const useSocket = () => {
   const { user } = useAuthStore();
@@ -63,15 +64,26 @@ export const useSocket = () => {
         if (!old) return [message];
         if (old.some((m) => m.id === message.id)) return old;
 
+        const clientMessageId = (message as any).clientMessageId;
+
         // Find the temp message to see if it was already marked as read
         const tempMsg = old.find(
           (m) =>
-            m.id.startsWith('temp-') &&
-            m.senderId === message.senderId &&
-            m.content === message.content
+            (clientMessageId && m.id === clientMessageId) ||
+            (m.id.startsWith('temp-') &&
+              m.senderId === message.senderId &&
+              (
+                (message.attachmentUrl && (m.attachmentUrl === message.attachmentUrl || m.attachmentUrl?.startsWith('blob:'))) ||
+                (message.content && m.content === message.content) ||
+                (!message.content && !m.content)
+              ))
         );
 
-        const withoutTemp = old.filter((m) => m !== tempMsg);
+        const withoutTemp = old.filter(
+          (m) =>
+            m !== tempMsg &&
+            !(clientMessageId && m.id === clientMessageId)
+        );
         
         // Inherit readBy from the temp message to survive race conditions
         const mergedMessage = {
@@ -256,6 +268,52 @@ export const useSocket = () => {
     const handleUserOnline = (data: { userId: string }) => useChatStore.getState().addOnlineUser(data.userId);
     const handleUserOffline = (data: { userId: string }) => useChatStore.getState().removeOnlineUser(data.userId);
 
+    // 7. FRIEND & BLOCK REAL-TIME SYNC
+    const handleFriendRequest = (data: { senderId: string; request: any }) => {
+      if (data.request) {
+        useFriendStore.getState().addPendingRequest(data.request);
+        notificationService.playSound('message');
+      }
+    };
+
+    const handleFriendAccept = (data: { userId: string; request: any }) => {
+      if (data.request?.receiver) {
+        useFriendStore.getState().addFriend(data.request.receiver);
+      }
+      if (data.request?.id) {
+        useFriendStore.getState().removeSentRequest(data.request.id);
+      }
+      notificationService.playSound('message');
+    };
+
+    const handleFriendReject = (data: { userId: string; requestId: string }) => {
+      if (data.requestId) {
+        useFriendStore.getState().removeSentRequest(data.requestId);
+      }
+    };
+
+    const handleFriendCancel = (data: { senderId: string; requestId: string }) => {
+      if (data.requestId) {
+        useFriendStore.getState().removePendingRequest(data.requestId);
+      }
+    };
+
+    const handleFriendRemove = (data: { userId: string }) => {
+      if (data.userId) {
+        useFriendStore.getState().removeFriend(data.userId);
+      }
+    };
+
+    const handleUserBlocked = (data: { blockerId: string }) => {
+      const currentActiveId = useChatStore.getState().activeConversationId;
+      if (currentActiveId) {
+        const conv = useChatStore.getState().conversations.get(currentActiveId);
+        if (conv && (conv.user1Id === data.blockerId || conv.user2Id === data.blockerId)) {
+          useChatStore.getState().setActiveConversation(null);
+        }
+      }
+    };
+
     // Socket Bindings
     socket.on('connect', handleConnect);
     socket.on('message:new', handleNewMessage);
@@ -267,6 +325,12 @@ export const useSocket = () => {
     socket.on('typing:indicator', onTypingIndicator);
     socket.on('user:online', handleUserOnline);
     socket.on('user:offline', handleUserOffline);
+    socket.on('friend:request', handleFriendRequest);
+    socket.on('friend:accept', handleFriendAccept);
+    socket.on('friend:reject', handleFriendReject);
+    socket.on('friend:cancel', handleFriendCancel);
+    socket.on('friend:remove', handleFriendRemove);
+    socket.on('user:blocked', handleUserBlocked);
 
     if (socket.connected) {
       handleConnect();
@@ -283,6 +347,12 @@ export const useSocket = () => {
       socket.off('typing:indicator', onTypingIndicator);
       socket.off('user:online', handleUserOnline);
       socket.off('user:offline', handleUserOffline);
+      socket.off('friend:request', handleFriendRequest);
+      socket.off('friend:accept', handleFriendAccept);
+      socket.off('friend:reject', handleFriendReject);
+      socket.off('friend:cancel', handleFriendCancel);
+      socket.off('friend:remove', handleFriendRemove);
+      socket.off('user:blocked', handleUserBlocked);
     };
   }, [user?.id, queryClient]);
 
@@ -321,36 +391,62 @@ export const useSendMessage = () => {
     content: string, 
     parentMessageId?: string, 
     attachmentUrl?: string, 
-    attachmentType?: 'image' | 'video'
+    attachmentType?: 'image' | 'video' | 'audio' | 'document',
+    attachmentMetadata?: any,
+    clientMessageId?: string
   ) => {
 
     const safeContent = content?.trim() || "";
     if (!user?.id || (!safeContent && !attachmentUrl)) return;
 
     const now = new Date();
-    const tempMessage: Message = {
-      id: `temp-${Date.now()}`,
-      conversationId,
-      senderId: user.id,
-      content,
-      createdAt: now,
-      readBy: [user.id],
-      parentMessageId,
-      attachmentUrl,
-      attachmentType,
-    };
+    const activeClientMessageId = clientMessageId || `temp-${Date.now()}`;
 
-    useChatStore.getState().addMessage(conversationId, tempMessage);
+    if (clientMessageId) {
+      // Optimistic message ALREADY created by media uploader!
+      // Update the existing optimistic message with the final CDN URL and metadata without creating a second temp message.
+      useChatStore.getState().updateMessage(conversationId, clientMessageId, {
+        content: safeContent,
+        attachmentUrl,
+        attachmentType,
+        attachmentMetadata,
+      });
 
-    queryClient.setQueryData(['messages', conversationId], (old: Message[] | undefined) => (old ? [...old, tempMessage] : [tempMessage]));
+      queryClient.setQueryData(['messages', conversationId], (old: Message[] | undefined) => {
+        if (!old) return old;
+        return old.map((m) =>
+          m.id === clientMessageId
+            ? { ...m, content: safeContent, attachmentUrl, attachmentType, attachmentMetadata }
+            : m
+        );
+      });
+    } else {
+      // Brand new text message: create optimistic temporary message
+      const tempMessage: Message = {
+        id: activeClientMessageId,
+        conversationId,
+        senderId: user.id,
+        content: safeContent,
+        createdAt: now,
+        readBy: [user.id],
+        parentMessageId,
+        attachmentUrl,
+        attachmentType,
+        attachmentMetadata,
+      };
 
-    queryClient.setQueryData(['conversations'], (oldData: Conversation[] | undefined) => {
-      if (!oldData) return oldData;
-      const target = oldData.find((c) => c.id === conversationId);
-      if (!target) return oldData;
-      const updated: Conversation = { ...target, lastMessage: tempMessage, lastMessageTime: now };
-      return [updated, ...oldData.filter((c) => c.id !== conversationId)];
-    });
+      useChatStore.getState().addMessage(conversationId, tempMessage);
+
+      queryClient.setQueryData(['messages', conversationId], (old: Message[] | undefined) => (old ? [...old, tempMessage] : [tempMessage]));
+
+      queryClient.setQueryData(['conversations'], (oldData: Conversation[] | undefined) => {
+        if (!oldData) return oldData;
+        const target = oldData.find((c) => c.id === conversationId);
+        if (!target) return oldData;
+        const updated: Conversation = { ...target, lastMessage: tempMessage, lastMessageTime: now };
+        return [updated, ...oldData.filter((c) => c.id !== conversationId)];
+      });
+    }
 
     try {
       socket.emit('message:send', { 
@@ -359,7 +455,9 @@ export const useSendMessage = () => {
         content: safeContent, 
         parentMessageId,
         attachmentUrl,
-        attachmentType
+        attachmentType,
+        attachmentMetadata,
+        clientMessageId: activeClientMessageId
       });
     } catch (error) {
       console.error('Failed to send message via socket:', error);

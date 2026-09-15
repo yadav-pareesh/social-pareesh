@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import type { FriendRequest, User } from '../types';
+import type { FriendRequest, User, BlockedUser } from '../types';
 
 interface FriendState {
   friends: User[];
   pendingRequests: FriendRequest[];
   sentRequests: FriendRequest[];
-  blockedUsers: User[];
+  blockedUsers: BlockedUser[];
+  isLoading: boolean;
 
   setFriends: (friends: User[]) => void;
   addFriend: (friend: User) => void;
@@ -19,9 +20,10 @@ interface FriendState {
   addSentRequest: (request: FriendRequest) => void;
   removeSentRequest: (requestId: string) => void;
 
-  setBlockedUsers: (users: User[]) => void;
-  blockUser: (user: User) => void;
-  unblockUser: (userId: string) => void;
+  setBlockedUsers: (users: BlockedUser[]) => void;
+  addBlockedUser: (user: BlockedUser) => void;
+  removeBlockedUser: (userId: string) => void;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useFriendStore = create<FriendState>((set) => ({
@@ -29,13 +31,20 @@ export const useFriendStore = create<FriendState>((set) => ({
   pendingRequests: [],
   sentRequests: [],
   blockedUsers: [],
+  isLoading: false,
 
   setFriends: (friends) => set({ friends }),
 
   addFriend: (friend) =>
-    set((state) => ({
-      friends: Array.from(new Set([...state.friends, friend])),
-    })),
+    set((state) => {
+      const exists = state.friends.some((f) => f.id === friend.id);
+      if (exists) {
+        return {
+          friends: state.friends.map((f) => (f.id === friend.id ? { ...f, ...friend } : f)),
+        };
+      }
+      return { friends: [friend, ...state.friends] };
+    }),
 
   removeFriend: (friendId) =>
     set((state) => ({
@@ -45,9 +54,11 @@ export const useFriendStore = create<FriendState>((set) => ({
   setPendingRequests: (requests) => set({ pendingRequests: requests }),
 
   addPendingRequest: (request) =>
-    set((state) => ({
-      pendingRequests: [...state.pendingRequests, request],
-    })),
+    set((state) => {
+      const exists = state.pendingRequests.some((r) => r.id === request.id);
+      if (exists) return state;
+      return { pendingRequests: [request, ...state.pendingRequests] };
+    }),
 
   removePendingRequest: (requestId) =>
     set((state) => ({
@@ -57,9 +68,11 @@ export const useFriendStore = create<FriendState>((set) => ({
   setSentRequests: (requests) => set({ sentRequests: requests }),
 
   addSentRequest: (request) =>
-    set((state) => ({
-      sentRequests: [...state.sentRequests, request],
-    })),
+    set((state) => {
+      const exists = state.sentRequests.some((r) => r.id === request.id);
+      if (exists) return state;
+      return { sentRequests: [request, ...state.sentRequests] };
+    }),
 
   removeSentRequest: (requestId) =>
     set((state) => ({
@@ -68,13 +81,20 @@ export const useFriendStore = create<FriendState>((set) => ({
 
   setBlockedUsers: (users) => set({ blockedUsers: users }),
 
-  blockUser: (user) =>
-    set((state) => ({
-      blockedUsers: [...state.blockedUsers, user],
-    })),
+  addBlockedUser: (user) =>
+    set((state) => {
+      const exists = state.blockedUsers.some((u) => u.id === user.id);
+      if (exists) return state;
+      return {
+        blockedUsers: [user, ...state.blockedUsers],
+        friends: state.friends.filter((f) => f.id !== user.id),
+      };
+    }),
 
-  unblockUser: (userId) =>
+  removeBlockedUser: (userId) =>
     set((state) => ({
       blockedUsers: state.blockedUsers.filter((u) => u.id !== userId),
     })),
+
+  setLoading: (isLoading) => set({ isLoading }),
 }));

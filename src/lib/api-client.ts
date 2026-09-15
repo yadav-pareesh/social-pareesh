@@ -3,7 +3,9 @@ import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '../types';
 import { useAuthStore } from '../stores/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { getEnvVar } from '../utils/env';
+
+const API_URL = getEnvVar('VITE_API_URL', 'http://localhost:3000/api');
 
 class ApiClient {
   private readonly client: AxiosInstance;
@@ -118,8 +120,8 @@ class ApiClient {
     return this.client.patch(url, data);
   }
 
-  async delete<T>(url: string): Promise<ApiResponse<T>> {
-    return this.client.delete(url);
+  async delete<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
+    return this.client.delete(url, { data });
   }
 }
 

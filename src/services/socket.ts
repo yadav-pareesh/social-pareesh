@@ -1,6 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 
-const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { getEnvVar } from '../utils/env';
+
+const rawUrl = getEnvVar('VITE_API_URL', 'http://localhost:3000');
 const SOCKET_URL = rawUrl.replace(/\/api\/?$/, '');
 
 let socket: Socket | null = null;

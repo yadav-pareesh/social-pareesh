@@ -1,5 +1,5 @@
 import { apiClient } from '../../lib/api-client';
-import type { User, ApiResponse, PaginatedResponse } from '../../types';
+import type { User, ApiResponse, PaginatedResponse, PrivacySettings, ReportPayload } from '../../types';
 
 export const usersAPI = {
   getUser: async (userId: string): Promise<ApiResponse<User>> => {
@@ -23,7 +23,22 @@ export const usersAPI = {
   },
 
   changePassword: async (userId: string, currentPassword: string, newPassword: string): Promise<ApiResponse<null>> => {
-    console.log("userId: ", userId, "currentPassword: ", currentPassword, "newPassword: ", newPassword);
     return apiClient.patch(`/users/${userId}/changePassword`, { currentPassword, newPassword });
-  }
+  },
+
+  getPrivacySettings: async (): Promise<ApiResponse<PrivacySettings>> => {
+    return apiClient.get('/users/me/privacy');
+  },
+
+  updatePrivacySettings: async (settings: Partial<PrivacySettings>): Promise<ApiResponse<PrivacySettings>> => {
+    return apiClient.patch('/users/me/privacy', settings);
+  },
+
+  reportUser: async (userId: string, payload: ReportPayload): Promise<ApiResponse<any>> => {
+    return apiClient.post(`/users/${userId}/report`, payload);
+  },
+
+  deleteAccount: async (password?: string): Promise<ApiResponse<{ success: boolean; message: string }>> => {
+    return apiClient.delete('/users/me', { data: { password } });
+  },
 };

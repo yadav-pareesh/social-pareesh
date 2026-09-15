@@ -1,14 +1,23 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { ResponsiveNavbarView, type NavTab } from './ResponsiveNavbarView';
 
 export const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuthStore();
   const { isDarkMode, setDarkMode } = useUIStore();
-  const [activeTab, setActiveTab] = React.useState<NavTab>('chats');
+
+  const activeTab: NavTab = React.useMemo(() => {
+    const path = location.pathname;
+    if (path.startsWith('/app/friends')) return 'friends';
+    if (path.startsWith('/app/requests')) return 'requests';
+    if (path.startsWith('/app/calls') || path.startsWith('/call-history')) return 'calls';
+    if (path.startsWith('/app/settings') || path.startsWith('/profile')) return 'settings';
+    return 'chats';
+  }, [location.pathname]);
 
   const handleLogout = React.useCallback(() => {
     logout();
@@ -16,7 +25,7 @@ export const Navbar = () => {
   }, [logout, navigate]);
 
   const handleProfile = React.useCallback(() => {
-    navigate('/profile');
+    navigate('/app/settings');
   }, [navigate]);
 
   const handleToggleDarkMode = React.useCallback(() => {
@@ -25,13 +34,23 @@ export const Navbar = () => {
 
   const handleTabChange = React.useCallback(
     (tab: NavTab) => {
-      setActiveTab(tab);
-      if (tab === 'friends') {
-        navigate('/friends');
-      } else if (tab === 'call-history') {
-        navigate('/call-history');
-      } else {
-        navigate('/');
+      switch (tab) {
+        case 'friends':
+          navigate('/app/friends');
+          break;
+        case 'requests':
+          navigate('/app/requests');
+          break;
+        case 'calls':
+          navigate('/app/calls');
+          break;
+        case 'settings':
+          navigate('/app/settings');
+          break;
+        case 'chats':
+        default:
+          navigate('/app/chats');
+          break;
       }
     },
     [navigate]

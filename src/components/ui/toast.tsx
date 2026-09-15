@@ -233,6 +233,34 @@ function Toaster({
 const createToastManager = ToastPrimitive.createToastManager
 const useToastManager = ToastPrimitive.useToastManager
 
+export function useToast() {
+  return {
+    toast: ({
+      title,
+      description,
+      variant,
+    }: {
+      title?: string;
+      description?: string;
+      variant?: 'default' | 'destructive' | string;
+    }) => {
+      try {
+        if (typeof (toast as any) === 'function') {
+          (toast as any)(description || title);
+        } else if ((toast as any).add) {
+          (toast as any).add({
+            title,
+            description,
+            type: variant === 'destructive' ? 'error' : 'success',
+          });
+        }
+      } catch {
+        // fallback
+      }
+    },
+  };
+}
+
 export {
   Toaster,
   Toast,

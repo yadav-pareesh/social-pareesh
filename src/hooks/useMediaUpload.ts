@@ -1,31 +1,27 @@
 import { useState } from 'react';
+import { uploadMediaFile } from '../services/imagekit/uploadService';
 
-// Get these from your Cloudinary Dashboard
-const CLOUD_NAME = 'r6n4em49'; 
-const UPLOAD_PRESET = 'social-pareesh-uploads';
-
+/**
+ * Backward-compatible media upload hook wrapping the new ImageKit pipeline
+ */
 export const useMediaUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
 
-  const uploadFile = async (file: File): Promise<string | null> => {
+  const uploadFile = async (
+    file: File,
+    conversationId = 'default',
+    userId = 'current-user'
+  ): Promise<string | null> => {
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', UPLOAD_PRESET);
-
-    const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
-
     try {
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,
-        { method: 'POST', body: formData }
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message);
-      return data.secure_url; 
+      const result = await uploadMediaFile({
+        file,
+        conversationId,
+        userId,
+      });
+      return result.url;
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Failed to upload media.');
+      console.error('ImageKit upload error:', error);
       return null;
     } finally {
       setIsUploading(false);

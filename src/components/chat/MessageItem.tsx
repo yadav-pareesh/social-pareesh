@@ -1,5 +1,5 @@
 import type { Message } from '../../types';
-import { Check, CheckCheck, Info, MoreHorizontal, Pencil, Trash2, X } from 'lucide-react';
+import { Check, CheckCheck, Info, MoreHorizontal, Pencil, Trash2, Clock, AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '../../services/socket';
 import { useAuthStore } from '../../stores/authStore';
@@ -7,26 +7,35 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from '../common/D
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../common/Dialog';
 import { useMessageNotification } from '@/hooks/useMessageNotification';
 import { useEditSocketMessage, useDeleteSocketMessage } from '../../hooks/useSocket';
+import { MediaAttachmentRenderer } from './MediaAttachmentRenderer';
+import { ImageViewerModal, type GalleryItem } from './ImageViewerModal';
 
 interface MessageItemProps {
   message: Message;
   isOwn: boolean;
   conversationId?: string;
+  galleryItems?: GalleryItem[];
 }
 
-export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps) => {
+export const MessageItem = ({
+  message,
+  isOwn,
+  conversationId,
+  galleryItems,
+}: MessageItemProps) => {
   const { user } = useAuthStore();
   const elementRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasMarkedAsReadRef = useRef(false);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [draftContent, setDraftContent] = useState(message.content);
   const [infoOpen, setInfoOpen] = useState(false);
-  
-  // NEW: State to track if the image is in full-screen mode
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  // Fullscreen ImageViewerModal State
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+
   const editMessage = useEditSocketMessage();
   const deleteMessage = useDeleteSocketMessage();
 
@@ -80,17 +89,21 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
     try {
       const date = new Date(message.createdAt);
       if (isNaN(date.getTime())) return '';
-      return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }).toLowerCase();
+      return date
+        .toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        })
+        .toLowerCase();
     } catch {
       return '';
     }
   })();
 
-  const isReadByRecipient = Array.isArray(message.readBy) && message.readBy.some((readerId) => readerId !== message.senderId);
+  const isReadByRecipient =
+    Array.isArray(message.readBy) &&
+    message.readBy.some((readerId) => readerId !== message.senderId);
 
   const handleCancelEdit = () => {
     setIsEditing(false);
@@ -118,9 +131,12 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this message?')) {
-      deleteMessage(conversationId ?? '', message.id);
-    }
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMessage(conversationId ?? '', message.id);
+    setDeleteConfirmOpen(false);
   };
 
   const isSaveDisabled = !draftContent.trim() || draftContent.trim() === message.content;
@@ -130,9 +146,31 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
   else if (isOwn) spacerWidth = 'w-[65px]';
   else if (message.editedAt) spacerWidth = 'w-[85px]';
 
+  // Construct gallery list for ImageViewerModal
+  const activeGallery: GalleryItem[] =
+    galleryItems && galleryItems.length > 0
+      ? galleryItems
+      : message.attachmentUrl
+      ? [
+          {
+            id: message.id,
+            url: message.attachmentUrl,
+            senderName: isOwn ? 'You' : undefined,
+            createdAt: message.createdAt,
+          },
+        ]
+      : [];
+
+  const currentGalleryIndex = activeGallery.findIndex(
+    (item) => item.id === message.id || item.url === message.attachmentUrl
+  );
+
   return (
     <>
-      <div ref={elementRef} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group py-[3px]`}>
+      <div
+        ref={elementRef}
+        className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group py-[3px]`}
+      >
         <div
           className={`relative min-h-[40px] max-w-[85%] sm:max-w-md px-2.5 pt-1.5 pb-1 rounded-xl shadow-sm transition-colors ${
             isOwn
@@ -142,14 +180,15 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
         >
           {!isEditing && (
             <div className="absolute top-1 right-1 -mt-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
-              <DropdownMenu 
-                align={isOwn ? 'right' : 'left'} 
+              <DropdownMenu
+                align={isOwn ? 'right' : 'left'}
                 trigger={
                   <button
                     type="button"
+                    aria-label="Message options"
                     className={`p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${
-                      isOwn 
-                        ? 'text-zinc-400 hover:text-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-900' 
+                      isOwn
+                        ? 'text-zinc-400 hover:text-zinc-100 dark:text-zinc-500 dark:hover:text-zinc-900'
                         : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200'
                     }`}
                   >
@@ -187,7 +226,6 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
 
           {isEditing ? (
             <div className="space-y-3 mt-1 pb-1">
-              {/* Editing code remains exactly the same */}
               <textarea
                 ref={textareaRef}
                 value={draftContent}
@@ -201,10 +239,17 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
                   <kbd className="font-sans">Enter</kbd> to save, <kbd className="font-sans">Esc</kbd> to cancel
                 </span>
                 <div className="flex items-center gap-2 ml-auto">
-                  <button onClick={handleCancelEdit} className="rounded-md px-3 py-1.5 text-xs font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-700 hover:opacity-90">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="rounded-md px-3 py-1.5 text-xs font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-700 hover:opacity-90"
+                  >
                     Cancel
                   </button>
-                  <button onClick={handleSaveEdit} disabled={isSaveDisabled} className="rounded-md bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50">
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={isSaveDisabled}
+                    className="rounded-md bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                  >
                     Save
                   </button>
                 </div>
@@ -212,33 +257,15 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
             </div>
           ) : (
             <>
-              {/* Image Rendering with Click-to-Expand */}
-              {message.attachmentUrl && message.attachmentType === 'image' && (
-                <div 
-                  className="mb-1 rounded-xl overflow-hidden bg-black/5 cursor-pointer hover:opacity-95 transition-opacity"
-                  onClick={() => setIsFullscreen(true)}
-                >
-                  <img 
-                    src={message.attachmentUrl} 
-                    alt="Shared image" 
-                    className="max-h-[300px] w-auto object-contain"
-                    loading="lazy"
-                  />
-                </div>
+              {/* Media Attachment Renderer for Images, Videos, Audio, and Documents */}
+              {message.attachmentUrl && (
+                <MediaAttachmentRenderer
+                  message={message}
+                  onImageClick={() => setIsViewerOpen(true)}
+                />
               )}
 
-              {/* Video Rendering */}
-              {message.attachmentUrl && message.attachmentType === 'video' && (
-                <div className="mb-1 rounded-xl overflow-hidden bg-black">
-                  <video 
-                    src={message.attachmentUrl} 
-                    controls 
-                    preload="metadata"
-                    className="max-h-[300px] w-auto object-contain"
-                  />
-                </div>
-              )}
-
+              {/* Message Content / Caption */}
               {message.content && (
                 <p className="text-[15px] leading-snug break-words whitespace-pre-wrap font-normal select-text mt-1">
                   {message.content}
@@ -249,21 +276,44 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
               {/* Timestamp & Read Receipts */}
               <div className="absolute bottom-1 right-2 flex items-center justify-end gap-1 select-none">
                 {message.editedAt && (
-                  <span className={`text-[10px] italic ${isOwn ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                  <span
+                    className={`text-[10px] italic ${
+                      isOwn ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'
+                    }`}
+                  >
                     (edited)
                   </span>
                 )}
-                <span className={`text-[10px] font-medium tracking-tight ${isOwn ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'}`}>
+                <span
+                  className={`text-[10px] font-medium tracking-tight ${
+                    isOwn ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-400 dark:text-zinc-500'
+                  }`}
+                >
                   {formattedTime}
                 </span>
                 {isOwn && (
-                  <div className="flex items-center pl-[2px]">
-                    {isReadByRecipient ? (
+                  <span
+                    className="flex items-center pl-[2px]"
+                    title={
+                      message.status === 'failed'
+                        ? 'Message failed to send'
+                        : (message.id?.startsWith('temp-') || message.status === 'sending')
+                        ? 'Sending...'
+                        : isReadByRecipient
+                        ? 'Read'
+                        : 'Sent'
+                    }
+                  >
+                    {message.status === 'failed' ? (
+                      <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                    ) : (message.id?.startsWith('temp-') || message.status === 'sending') ? (
+                      <Clock className="h-3 w-3 text-zinc-400 animate-pulse" />
+                    ) : isReadByRecipient ? (
                       <CheckCheck className="h-3.5 w-3.5 text-[#53bdeb]" />
                     ) : (
                       <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
                     )}
-                  </div>
+                  </span>
                 )}
               </div>
             </>
@@ -271,26 +321,14 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
         </div>
       </div>
 
-      {/* FULLSCREEN LIGHTBOX PORTAL */}
-      {isFullscreen && message.attachmentType === 'image' && message.attachmentUrl && (
-        <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in zoom-in-95 duration-200"
-          onClick={() => setIsFullscreen(false)}
-        >
-          <button 
-            className="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-full transition-all z-10"
-            onClick={() => setIsFullscreen(false)}
-          >
-            <X className="h-8 w-8" />
-          </button>
-          
-          <img 
-            src={message.attachmentUrl} 
-            alt="Fullscreen attachment" 
-            className="max-w-full max-h-full object-contain drop-shadow-2xl select-none"
-            onClick={(e) => e.stopPropagation()} 
-          />
-        </div>
+      {/* Modern WhatsApp-style Fullscreen Image Viewer Modal */}
+      {isViewerOpen && (
+        <ImageViewerModal
+          isOpen={isViewerOpen}
+          onClose={() => setIsViewerOpen(false)}
+          items={activeGallery}
+          initialIndex={currentGalleryIndex >= 0 ? currentGalleryIndex : 0}
+        />
       )}
 
       {/* Info Dialog */}
@@ -300,10 +338,19 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
             <DialogTitle>Message info</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 text-sm text-muted-foreground py-2">
-            <p><span className="font-medium text-foreground">Sent:</span> {new Date(message.createdAt).toLocaleString()}</p>
-            <p><span className="font-medium text-foreground">Status:</span> {isReadByRecipient ? 'Seen' : 'Sent'}</p>
+            <p>
+              <span className="font-medium text-foreground">Sent:</span>{' '}
+              {new Date(message.createdAt).toLocaleString()}
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Status:</span>{' '}
+              {isReadByRecipient ? 'Seen' : 'Sent'}
+            </p>
             {message.editedAt && (
-              <p><span className="font-medium text-foreground">Edited:</span> {new Date(message.editedAt).toLocaleString()}</p>
+              <p>
+                <span className="font-medium text-foreground">Edited:</span>{' '}
+                {new Date(message.editedAt).toLocaleString()}
+              </p>
             )}
           </div>
           <DialogFooter>
@@ -313,6 +360,41 @@ export const MessageItem = ({ message, isOwn, conversationId }: MessageItemProps
               className="rounded-md bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900 px-4 py-2 text-sm font-medium hover:opacity-90"
             >
               Close
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-sm p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="h-10 w-10 rounded-full bg-destructive/10 text-destructive flex items-center justify-center shrink-0">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <DialogTitle className="text-base font-semibold text-foreground">
+                Delete {message.attachmentUrl ? (message.attachmentType || 'media') : 'message'}?
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Are you sure you want to delete this {message.attachmentUrl ? (message.attachmentType || 'file') : 'message'}? It will be permanently removed for everyone in this chat.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="mt-6 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(false)}
+              className="rounded-lg px-4 py-2 text-xs font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:opacity-90 transition-opacity"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDelete}
+              className="rounded-lg px-4 py-2 text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-opacity shadow-sm"
+            >
+              Delete
             </button>
           </DialogFooter>
         </DialogContent>

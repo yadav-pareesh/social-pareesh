@@ -26,8 +26,22 @@ export const ChatWindow = ({ conversation, currentUser }: ChatWindowProps) => {
   const sendMessage = useSendMessage();
   const { showUserCard } = useUIStore();
 
-  const handleSendMessage = (content: string) => {
-    sendMessage(conversation.id, content);
+  const handleSendMessage = (
+    content: string,
+    attachmentUrl?: string,
+    attachmentType?: 'image' | 'video' | 'audio' | 'document',
+    attachmentMetadata?: any,
+    clientMessageId?: string
+  ) => {
+    sendMessage(
+      conversation.id,
+      content,
+      undefined,
+      attachmentUrl,
+      attachmentType,
+      attachmentMetadata,
+      clientMessageId
+    );
   };
 
   return (

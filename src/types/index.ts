@@ -28,7 +28,10 @@ export interface Message {
   readBy: string[];
   parentMessageId?: string; // For replies
   attachmentUrl?: string;
-  attachmentType?: 'image' | 'video';
+  attachmentType?: 'image' | 'video' | 'audio' | 'document';
+  attachmentMetadata?: any;
+  clientMessageId?: string;
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 }
 
 export interface MessageReply {
@@ -48,13 +51,38 @@ export interface Conversation {
 }
 
 // Friend Types
+export type RelationshipStatus = 'NONE' | 'REQUEST_SENT' | 'REQUEST_RECEIVED' | 'FRIENDS' | 'BLOCKED';
+
 export interface FriendRequest {
   id: string;
   senderId: string;
-  sender: User;
+  sender?: User;
   receiverId: string;
+  receiver?: User;
   status: 'pending' | 'accepted' | 'blocked';
   createdAt: Date;
+}
+
+export interface BlockedUser {
+  id: string;
+  username: string;
+  email?: string;
+  profilePicUrl?: string | null;
+  bio?: string | null;
+  status?: string;
+}
+
+export interface PrivacySettings {
+  lastSeen: 'everyone' | 'friends' | 'nobody';
+  onlineStatus: 'everyone' | 'friends' | 'nobody';
+  readReceipts: boolean;
+  friendRequests: 'everyone' | 'friends_of_friends' | 'nobody';
+  calls: 'everyone' | 'friends' | 'nobody';
+}
+
+export interface ReportPayload {
+  reason: 'Spam' | 'Harassment' | 'Inappropriate content' | 'Fake account' | 'Other';
+  details?: string;
 }
 
 // API Response Types

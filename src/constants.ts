@@ -1,5 +1,7 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+import { getEnvVar } from './utils/env';
+
+export const API_BASE_URL = getEnvVar('VITE_API_URL', 'http://localhost:3000/api');
+export const SOCKET_URL = getEnvVar('VITE_SOCKET_URL', 'http://localhost:3000');
 
 export const TOAST_DURATION = 3000;
 export const DEBOUNCE_DELAY = 300;

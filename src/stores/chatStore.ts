@@ -18,6 +18,7 @@ interface ChatState {
   // Messages
   setMessages: (conversationId: string, messages: Message[]) => void;
   addMessage: (conversationId: string, message: Message) => void;
+  updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => void;
   editMessage: (conversationId: string, messageId: string, content: string) => void;
   deleteMessage: (conversationId: string, messageId: string) => void;
   markConversationAsRead: (conversationId: string, userId: string) => void;
@@ -88,52 +89,72 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
-  addMessage: (conversationId, message) => {
-  set((state) => {
-    const currentList = state.messages.get(conversationId) || [];
-    
-    // Check if real message already exists
-    const exactMatch = currentList.some((m) => m.id === message.id);
-    if (exactMatch) return state;
-
-    let updatedList: Message[];
-
-    // If incoming message is confirmed from server, remove any matching optimistic temp message
-    if (!message.id.startsWith('temp-')) {
-      const hasTempMatch = currentList.some(
-        (m) =>
-          m.id.startsWith('temp-') &&
-          m.senderId === message.senderId &&
-          m.content === message.content
+  updateMessage: (conversationId, messageId, updates) => {
+    set((state) => {
+      const currentList = state.messages.get(conversationId) || [];
+      const updatedList = currentList.map((m) =>
+        m.id === messageId ? { ...m, ...updates } : m
       );
+      const newMessages = new Map(state.messages);
+      newMessages.set(conversationId, updatedList);
+      return { messages: newMessages };
+    });
+  },
 
-      if (hasTempMatch) {
-        let replaced = false;
-        updatedList = currentList.map((m) => {
-          if (
-            !replaced &&
-            m.id.startsWith('temp-') &&
-            m.senderId === message.senderId &&
-            m.content === message.content
-          ) {
-            replaced = true;
-            return { 
-              ...message, 
-              // CRITICAL FIX: Merge the arrays to keep the read receipts!
-              readBy: Array.from(new Set([...(message.readBy || []), ...(m.readBy || [])])) 
-            };
-          }
-          return m;
-        });
+  addMessage: (conversationId, message) => {
+    set((state) => {
+      const currentList = state.messages.get(conversationId) || [];
+      
+      // Check if real message already exists
+      const exactMatch = currentList.some((m) => m.id === message.id);
+      if (exactMatch) return state;
+
+      let updatedList: Message[];
+
+      // If incoming message is confirmed from server, remove any matching optimistic temp message
+      if (!message.id.startsWith('temp-')) {
+        const clientMessageId = (message as any).clientMessageId;
+
+        // Check if there is an existing temp message for this message
+        const matchingTempIndex = currentList.findIndex(
+          (m) =>
+            (clientMessageId && m.id === clientMessageId) ||
+            (m.id.startsWith('temp-') &&
+              m.senderId === message.senderId &&
+              (
+                (message.attachmentUrl && (m.attachmentUrl === message.attachmentUrl || m.attachmentUrl?.startsWith('blob:'))) ||
+                (message.content && m.content === message.content) ||
+                (!message.content && !m.content)
+              ))
+        );
+
+        if (matchingTempIndex !== -1) {
+          const matchingTemp = currentList[matchingTempIndex];
+          const mergedMessage: Message = {
+            ...message,
+            // Preserve read receipts from optimistic state
+            readBy: Array.from(
+              new Set([...(message.readBy || []), ...(matchingTemp.readBy || [])])
+            ),
+          };
+
+          // Replace the matching temp message and eliminate any stray duplicates with the same clientMessageId
+          updatedList = currentList
+            .map((m, idx) => (idx === matchingTempIndex ? mergedMessage : m))
+            .filter((m) => !(clientMessageId && m.id === clientMessageId && m !== mergedMessage));
+        } else {
+          updatedList = [...currentList, message];
+        }
       } else {
+        // Prevent duplicate temp message if one with this ID already exists
+        if (currentList.some((m) => m.id === message.id)) {
+          return state;
+        }
         updatedList = [...currentList, message];
       }
-    } else {
-      updatedList = [...currentList, message];
-    }
 
-    const newMessages = new Map(state.messages);
-    newMessages.set(conversationId, updatedList);
+      const newMessages = new Map(state.messages);
+      newMessages.set(conversationId, updatedList);
 
     // Float conversation to top and calculate intelligent unread count
     const existingConv = state.conversations.get(conversationId);
