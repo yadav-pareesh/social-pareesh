@@ -19,7 +19,7 @@ const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[!@#$%^&*()_+\-=[\]{};\':"\\|,.<>/?]/, 'Password must contain at least one special character'),
+    .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character'),
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -30,7 +30,7 @@ export const RegisterForm = () => {
   const { setUser, setToken, setRefreshToken } = useAuthStore();
 
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [step, setStep] = useState<'register' | 'verify'>('register');
+  const [step] = useState<'register' | 'verify'>('register');
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);

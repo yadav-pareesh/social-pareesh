@@ -34,14 +34,13 @@ export const useGetPendingRequests = () => {
 
 export const useAcceptFriendRequest = () => {
   const queryClient = useQueryClient();
-  const { removePendingRequest, addFriend } = useFriendStore();
+  const { removePendingRequest } = useFriendStore();
 
   return useMutation({
     mutationFn: (requestId: string) => friendsAPI.acceptRequest(requestId),
     onSuccess: (response) => {
       if (response.data) {
         removePendingRequest(response.data.id);
-        // Optionally add as friend
       }
       queryClient.invalidateQueries({ queryKey: ['friends'] });
     },
@@ -54,7 +53,8 @@ export const useRejectFriendRequest = () => {
 
   return useMutation({
     mutationFn: (requestId: string) => friendsAPI.rejectRequest(requestId),
-    onSuccess: () => {
+    onSuccess: (_, requestId) => {
+      removePendingRequest(requestId);
       queryClient.invalidateQueries({ queryKey: ['friends', 'requests'] });
     },
   });
@@ -81,7 +81,8 @@ export const useRemoveFriend = () => {
 
   return useMutation({
     mutationFn: (friendId: string) => friendsAPI.removeFriend(friendId),
-    onSuccess: () => {
+    onSuccess: (_, friendId) => {
+      removeFriend(friendId);
       queryClient.invalidateQueries({ queryKey: ['friends'] });
     },
   });

@@ -1,5 +1,15 @@
 import { create } from 'zustand';
 import type { User } from '../types';
+import { closeSocket } from '../services/socket';
+
+const safeParseUser = (raw: string | null): User | null => {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+};
 
 interface AuthState {
   user: User | null;
@@ -19,7 +29,7 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
+  user: safeParseUser(localStorage.getItem('user')),
   token: localStorage.getItem('token'),
   refreshToken: localStorage.getItem('refreshToken'),
   isAuthenticated: !!localStorage.getItem('token') && !!localStorage.getItem('user'),
@@ -53,6 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    closeSocket();
     set({
       user: null,
       token: null,
@@ -66,11 +77,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     const token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
     const storedUser = localStorage.getItem('user');
+    const parsedUser = safeParseUser(storedUser);
     set({
       token,
       refreshToken,
-      user: storedUser ? JSON.parse(storedUser) : null,
-      isAuthenticated: !!token && !!storedUser,
+      user: parsedUser,
+      isAuthenticated: !!token && !!parsedUser,
     });
   },
 }));

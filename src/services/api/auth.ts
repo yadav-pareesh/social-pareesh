@@ -30,7 +30,9 @@ export const authAPI = {
   },
 
   refresh: async (): Promise<ApiResponse<AuthResponse>> => {
-    return apiClient.post('/auth/refresh');
+    return apiClient.post('/auth/refresh', {
+      refreshToken: localStorage.getItem('refreshToken'),
+    });
   },
 
   forgotPassword: async (email: string): Promise<ApiResponse<void>> => {

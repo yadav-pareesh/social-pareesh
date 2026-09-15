@@ -9,7 +9,6 @@ import {
   Bell,
   X,
   Menu,
-  History,
   Phone,
 } from 'lucide-react';
 import type { User } from '../../types';

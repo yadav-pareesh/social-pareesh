@@ -50,31 +50,20 @@ export const AuthenticatedUserProfile = ({ onNavigate }: AuthenticatedUserProfil
   const profile = (userData?.data || authUser) as User | null;
 
   // Local edit state
-  const [formData, setFormData] = React.useState({
-    username: '',
-    bio: '',
-    profilePicUrl: '',
-  });
-  const [isDirty, setIsDirty] = React.useState(false);
-
-  // Synchronize form when user data loads or changes
-  React.useEffect(() => {
-    if (profile) {
-      setFormData({
-        username: profile.username || '',
-        bio: profile.bio || '',
-        profilePicUrl: profile.profilePicUrl || '',
-      });
-      setIsDirty(false);
-    }
-  }, [profile]);
+  const [userEdits, setUserEdits] = React.useState<Partial<User>>({});
+  const isDirty = Object.keys(userEdits).length > 0;
+  const formData = {
+    username: userEdits.username !== undefined ? userEdits.username : (profile?.username || ''),
+    bio: userEdits.bio !== undefined ? userEdits.bio : (profile?.bio || ''),
+    profilePicUrl: userEdits.profilePicUrl !== undefined ? userEdits.profilePicUrl : (profile?.profilePicUrl || ''),
+  };
 
   // Mutation for profile updates
   const updateMutation = useMutation({
     mutationFn: (data: Partial<User>) => usersAPI.updateProfile(authUser!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', authUser?.id] });
-      setIsDirty(false);
+      setUserEdits({});
       toast.add({
         title: 'Profile Updated',
         description: 'Your profile changes have been saved.',
@@ -93,8 +82,7 @@ export const AuthenticatedUserProfile = ({ onNavigate }: AuthenticatedUserProfil
   // Handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setIsDirty(true);
+    setUserEdits((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -282,12 +270,7 @@ export const AuthenticatedUserProfile = ({ onNavigate }: AuthenticatedUserProfil
                 type="button"
                 disabled={!isDirty}
                 onClick={() => {
-                  setFormData({
-                    username: profile.username || '',
-                    bio: profile.bio || '',
-                    profilePicUrl: profile.profilePicUrl || '',
-                  });
-                  setIsDirty(false);
+                  setUserEdits({});
                 }}
                 className="h-9 px-4 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors"
               >
@@ -385,7 +368,7 @@ export const AuthenticatedUserProfile = ({ onNavigate }: AuthenticatedUserProfil
       {showChangePassword && (
         <Dialog open={true} onOpenChange={setShowChangePassword}>
           <DialogContent className="max-w-md">
-            <ChangePasswordPage />
+            <ChangePasswordPage onClose={() => setShowChangePassword(false)} />
           </DialogContent>
         </Dialog>
       )}

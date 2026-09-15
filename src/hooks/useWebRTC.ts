@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useCallStore } from '../stores/callStore';
 import { getSocket } from '../services/socket';
 import { useAuthStore } from '../stores/authStore';
@@ -17,11 +17,9 @@ export const useWebRTC = () => {
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   
   const { 
-    status, 
     targetUserId, 
     callerId, 
     withVideo, 
-    localStream, 
     setLocalStream, 
     setRemoteStream, 
     setCallState, 
@@ -29,7 +27,7 @@ export const useWebRTC = () => {
   } = useCallStore();
 
   // Initialize Peer Connection
-  const getPeerConnection = () => {
+  const getPeerConnection = useCallback(() => {
     if (!peerConnection.current) {
       peerConnection.current = new RTCPeerConnection(ICE_SERVERS);
 
@@ -49,7 +47,7 @@ export const useWebRTC = () => {
       };
     }
     return peerConnection.current;
-  };
+  }, [callerId, setRemoteStream, socket, targetUserId]);
 
   // Get Camera & Mic Permissions
   const startLocalStream = async (video: boolean) => {
@@ -93,7 +91,7 @@ export const useWebRTC = () => {
     socket.emit('call:accept', { targetUserId: callerId });
   };
 
-  const handleHangUp = (emitToRemote = true) => {
+  const handleHangUp = useCallback((emitToRemote = true) => {
     if (emitToRemote && (targetUserId || callerId)) {
       socket.emit('call:end', { targetUserId: targetUserId || callerId });
     }
@@ -103,7 +101,7 @@ export const useWebRTC = () => {
       peerConnection.current = null;
     }
     endCall();
-  };
+  }, [callerId, endCall, socket, targetUserId]);
 
   // Socket Listeners
   useEffect(() => {
@@ -162,7 +160,7 @@ export const useWebRTC = () => {
       socket.off('call:ended');
       socket.off('call:error');
     };
-  }, [socket, targetUserId, callerId, withVideo]);
+  }, [socket, targetUserId, callerId, withVideo, getPeerConnection, handleHangUp, setCallState]);
 
   return { initiateCall, answerCall, handleHangUp };
 };

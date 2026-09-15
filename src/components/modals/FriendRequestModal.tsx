@@ -1,4 +1,4 @@
-import type { FriendRequest, User } from '../../types';
+import type { FriendRequest } from '../../types';
 import { Button } from '../common/Button';
 import { Check, X } from 'lucide-react';
 import { useAcceptFriendRequest, useRejectFriendRequest } from '../../hooks/useFriends';
@@ -8,7 +8,7 @@ interface FriendRequestModalProps {
   onClose?: () => void;
 }
 
-export const FriendRequestModal = ({ requests, onClose }: FriendRequestModalProps) => {
+export const FriendRequestModal = ({ requests }: FriendRequestModalProps) => {
   const acceptMutation = useAcceptFriendRequest();
   const rejectMutation = useRejectFriendRequest();
 

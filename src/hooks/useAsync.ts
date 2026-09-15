@@ -11,13 +11,13 @@ export const useAsync = <T,>(
   immediate: boolean = true
 ): UseAsyncState<T> & { execute: () => Promise<void> } => {
   const [state, setState] = useState<UseAsyncState<T>>({
-    status: 'idle',
+    status: immediate ? 'pending' : 'idle',
     data: null,
     error: null,
   });
 
   const execute = useCallback(async () => {
-    setState({ status: 'pending', data: null, error: null });
+    setState((prev) => (prev.status === 'pending' ? prev : { status: 'pending', data: null, error: null }));
     try {
       const response = await asyncFunction();
       setState({ status: 'success', data: response, error: null });
@@ -31,10 +31,28 @@ export const useAsync = <T,>(
   }, [asyncFunction]);
 
   useEffect(() => {
+    let isSubscribed = true;
     if (immediate) {
-      execute();
+      asyncFunction()
+        .then((response) => {
+          if (isSubscribed) {
+            setState({ status: 'success', data: response, error: null });
+          }
+        })
+        .catch((err) => {
+          if (isSubscribed) {
+            setState({
+              status: 'error',
+              data: null,
+              error: err instanceof Error ? err : new Error(String(err)),
+            });
+          }
+        });
     }
-  }, [execute, immediate]);
+    return () => {
+      isSubscribed = false;
+    };
+  }, [asyncFunction, immediate]);
 
   return { ...state, execute };
 };

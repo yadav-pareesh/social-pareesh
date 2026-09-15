@@ -1,8 +1,7 @@
 import { type TextareaHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
-interface TextareaProps
-  extends TextareaHTMLAttributes<HTMLTextAreaElement> {}
+export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 export const Textarea = ({ className, ...props }: TextareaProps) => (
   <textarea
