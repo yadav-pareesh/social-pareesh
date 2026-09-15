@@ -13,6 +13,7 @@ jest.mock('../stores/callStore', () => ({ useCallStore: (selector: any) => selec
 jest.mock('../services/socket', () => ({ getSocket: () => ({ emit: jest.fn() }) }));
 jest.mock('../hooks/useMessageNotification', () => ({ useMessageNotification: jest.fn() }));
 jest.mock('../hooks/useSocket', () => ({ useEditSocketMessage: () => jest.fn(), useDeleteSocketMessage: () => jest.fn() }));
+jest.mock('../hooks/useWebRTC', () => ({ useWebRTC: () => ({ initiateCall: jest.fn() }) }));
 
 import { LoginForm } from '../components/auth/LoginForm';
 import { ForgotPassword } from '../pages/ForgotPassword';

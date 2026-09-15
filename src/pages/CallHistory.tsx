@@ -6,6 +6,7 @@ import { useCallStore } from '../stores/callStore';
 import { getSocket } from '../services/socket';
 import { useCallHistory } from '@/hooks/useCallHistory';
 import { CallIcon } from '@/components/call/CallIcon';
+import { useWebRTC } from '@/hooks/useWebRTC';
 
 const formatDuration = (seconds?: number) => {
   if (!seconds) return null;
@@ -17,7 +18,7 @@ const formatDuration = (seconds?: number) => {
 export const CallHistory = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const setCallState = useCallStore(state => state.setCallState);
+  const { initiateCall } = useWebRTC();
   
   const { 
     data, 
@@ -29,16 +30,12 @@ export const CallHistory = () => {
 
   const calls = data?.pages.flatMap((page) => page.items) || [];
 
-  const handleInitiateCall = (userId: string, isVideo: boolean) => {
-    if (!user?.id) return; 
-
-    setCallState('calling', { targetUserId: userId, withVideo: isVideo });
-    const socket = getSocket();
-    
-    socket.emit('call:initiate', {
-      targetUserId: userId,
-      callerId: user.id, 
-      withVideo: isVideo
+  const handleInitiateCall = (otherUser: CallRecord['otherUser'], isVideo: boolean) => {
+    if (!user?.id || !otherUser?.id) return; 
+    initiateCall(otherUser.id, isVideo, {
+      id: otherUser.id,
+      username: otherUser.username,
+      profilePicUrl: otherUser.profilePicUrl,
     });
   };
 
@@ -143,14 +140,14 @@ export const CallHistory = () => {
 
                     <div className="flex items-center gap-1.5 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button 
-                        onClick={(e) => { e.stopPropagation(); handleInitiateCall(call.otherUser.id, false); }}
+                        onClick={(e) => { e.stopPropagation(); handleInitiateCall(call.otherUser, false); }}
                         className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background hover:bg-accent text-muted-foreground transition-colors shadow-sm"
                         aria-label="Audio call"
                       >
                         <Phone className="h-4 w-4" />
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); handleInitiateCall(call.otherUser.id, true); }}
+                        onClick={(e) => { e.stopPropagation(); handleInitiateCall(call.otherUser, true); }}
                         className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background hover:bg-accent text-muted-foreground transition-colors shadow-sm"
                         aria-label="Video call"
                       >

@@ -56,21 +56,26 @@ export const ChatHeader = ({ user, conversationId }: ChatHeaderProps) => {
   // 3. Wire up the Voice Call Button
   const handleCall = async () => {
     try {
-      // initiateCall(targetUserId, withVideo)
-      await initiateCall(user.id, false);
+      await initiateCall(user.id, false, {
+        id: user.id,
+        username: user.username,
+        profilePicUrl: user.profilePicUrl || null,
+      });
     } catch (error) {
       console.error('Failed to start voice call:', error);
-      alert('Could not access microphone. Please check your browser permissions.');
     }
   };
   
   // 4. Wire up the Video Call Button
   const handleVideoCall = async () => {
     try {
-      await initiateCall(user.id, true);
+      await initiateCall(user.id, true, {
+        id: user.id,
+        username: user.username,
+        profilePicUrl: user.profilePicUrl || null,
+      });
     } catch (error) {
       console.error('Failed to start video call:', error);
-      alert('Could not access camera/microphone. Please check your browser permissions.');
     }
   };
 

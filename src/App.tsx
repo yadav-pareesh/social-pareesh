@@ -20,6 +20,7 @@ import { Friends } from './pages/Friends';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { VerifyEmail } from './pages/VerifyEmail';
+import { webRTCManager } from './services/webrtc/WebRTCManager';
 
 export const App = () => {
   const { hydrate } = useAuthStore();
@@ -42,6 +43,7 @@ export const App = () => {
 
   useEffect(() => {
     hydrate();
+    webRTCManager.initSocketListeners();
     return () => {
       notificationService.dispose();
     };
