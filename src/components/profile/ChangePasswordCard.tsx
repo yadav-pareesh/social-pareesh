@@ -45,9 +45,21 @@ const changePasswordSchema = z
 
 type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
-export const ChangePasswordPage = () => {
+interface ChangePasswordPageProps {
+  onClose?: () => void;
+}
+
+export const ChangePasswordPage = ({ onClose }: ChangePasswordPageProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      navigate(-1);
+    }
+  };
 
   const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
@@ -102,7 +114,7 @@ export const ChangePasswordPage = () => {
         description: 'Your sign-in credentials have been changed successfully.',
         type: 'success',
       });
-      navigate(-1);
+      handleClose();
     },
     onError: (error: Error) => {
       toast.add({
@@ -124,7 +136,7 @@ export const ChangePasswordPage = () => {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={handleClose}
             aria-label="Go back"
             className="group flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -299,7 +311,7 @@ export const ChangePasswordPage = () => {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={handleClose}
               className="h-9 px-4 rounded-md border border-input bg-background hover:bg-muted text-xs font-medium text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Cancel

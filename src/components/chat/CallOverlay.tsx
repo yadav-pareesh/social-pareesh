@@ -4,7 +4,7 @@ import { useWebRTC } from '../../hooks/useWebRTC';
 import { Phone, PhoneOff, Video, Mic, MicOff, VideoOff, Loader2 } from 'lucide-react';
 
 export const CallOverlay = () => {
-  const { status, localStream, remoteStream, withVideo, callerId } = useCallStore();
+  const { status, localStream, remoteStream, withVideo } = useCallStore();
   const { answerCall, handleHangUp } = useWebRTC();
   
   const localVideoRef = useRef<HTMLVideoElement>(null);

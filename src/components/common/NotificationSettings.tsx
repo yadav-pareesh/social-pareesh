@@ -35,24 +35,32 @@ export const NotificationSettings = () => {
   const [sounds, setSounds] = React.useState<SoundConfig[]>([]);
 
   React.useEffect(() => {
+    let isSubscribed = true;
     const fetchAndRegisterSounds = async () => {
       try {
-        const loadedSounds = await notificationService.getSounds?.() || [];
-        
+        const loadedSounds = (await notificationService.getSounds?.()) || [];
+
         // Auto-register sounds if your service requires it before playing
         loadedSounds.forEach((sound) => {
-          const volume = soundVolumes[sound.key] ?? sound.volume ?? 0.5;
+          const volume = sound.volume ?? 0.5;
           // Ensure path matches exactly where your mp3s are in your public folder
           notificationService.registerSound?.(sound.key, `/sounds/${sound.key}.mp3`, volume);
         });
 
-        setSounds(loadedSounds);
+        if (isSubscribed) {
+          setSounds(loadedSounds);
+        }
       } catch (error) {
         console.error('Failed to load notification sounds:', error);
-        setSounds([]);
+        if (isSubscribed) {
+          setSounds([]);
+        }
       }
     };
     fetchAndRegisterSounds();
+    return () => {
+      isSubscribed = false;
+    };
   }, []); // Run once on mount
 
   // 3. Handle strict browser notification permissions safely
