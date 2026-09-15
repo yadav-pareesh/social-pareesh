@@ -62,7 +62,7 @@ export const App = () => {
       <Router>
         <CallOverlay />
         <Routes>
-          {/* Public Authentication Routes (No Navbar) */}
+          {/* Public Authentication Routes (No Navbar) */} 
           <Route element={<PublicRoute />}>
             <Route path="/login" element={<Auth type="login" />} />
             <Route path="/register" element={<Auth type="register" />} />
