@@ -1,14 +1,6 @@
 // WebRTC Configuration supporting STUN & TURN from environment variables with fallback defaults
+import { getEnvVar } from '../../utils/env';
 
-const getEnvVar = (key: string): string | undefined => {
-  try {
-    const meta = new Function('return import.meta')();
-    return meta?.env?.[key];
-  } catch {
-    const proc = (globalThis as any).process;
-    return proc?.env?.[key];
-  }
-};
 
 const getIceServers = (): RTCIceServer[] => {
   const servers: RTCIceServer[] = [];

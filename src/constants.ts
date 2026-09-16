@@ -1,7 +1,53 @@
 import { getEnvVar } from './utils/env';
 
-export const API_BASE_URL = getEnvVar('VITE_API_URL', 'http://localhost:3000/api');
-export const SOCKET_URL = getEnvVar('VITE_SOCKET_URL', 'http://localhost:3000');
+const isBrowser = typeof window !== 'undefined';
+const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+const resolveDefaultApiUrl = (): string => {
+  const envUrl = getEnvVar('VITE_API_URL');
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  if (isLocalhost) {
+    return 'http://localhost:3000/api';
+  }
+
+  if (isBrowser) {
+    console.warn(
+      '[Chatly] VITE_API_URL is not set. In production, configure VITE_API_URL in your Vercel project environment variables.'
+    );
+    return `${window.location.origin}/api`;
+  }
+
+  return 'http://localhost:3000/api';
+};
+
+const resolveDefaultSocketUrl = (): string => {
+  const envUrl = getEnvVar('VITE_SOCKET_URL');
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  const apiUrl = getEnvVar('VITE_API_URL');
+  if (apiUrl) {
+    return apiUrl.replace(/\/api\/?$/, '');
+  }
+
+  if (isLocalhost) {
+    return 'http://localhost:3000';
+  }
+
+  if (isBrowser) {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:3000';
+};
+
+export const API_BASE_URL = resolveDefaultApiUrl();
+export const SOCKET_URL = resolveDefaultSocketUrl();
+
 
 export const TOAST_DURATION = 3000;
 export const DEBOUNCE_DELAY = 300;

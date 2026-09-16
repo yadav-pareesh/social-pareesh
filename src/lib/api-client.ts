@@ -3,9 +3,7 @@ import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import type { ApiResponse } from '../types';
 import { useAuthStore } from '../stores/authStore';
 
-import { getEnvVar } from '../utils/env';
-
-const API_URL = getEnvVar('VITE_API_URL', 'http://localhost:3000/api');
+import { API_BASE_URL } from '../constants';
 
 class ApiClient {
   private readonly client: AxiosInstance;
@@ -17,11 +15,12 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_URL,
+      baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
 
     this.client.interceptors.request.use((config) => {
       const token = localStorage.getItem('token');
